@@ -2,6 +2,7 @@ var http = require('http');
 var nodegit = require('nodegit');
 var rimraf = require('rimraf');
 var mkdirp = require('mkdirp');
+var confio = require('confio');
 
 function wait_connection()
 {
@@ -33,13 +34,25 @@ function wait_connection()
   });
 }
 
-function pot(path, repository, branch)
+function schedule(callback, timestamp)
 {
   'use strict';
 
-  // settings
+  var now = new Date().getTime();
 
-  var settings = {setup_retry: 1000};
+  if(timestamp <= now)
+    callback();
+  else
+    setTimeout(callback, timestamp - now);
+}
+
+function pot(config_path, path, repository, branch)
+{
+  'use strict';
+
+  // Settings
+
+  var settings = {setup_time_unit: 1000, setup_max_wait: 604800000};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -48,11 +61,19 @@ function pot(path, repository, branch)
 
   // Constructor
 
+  var _config_path = config_path;
   var _path = path;
   var _repository = repository;
   var _branch = branch;
 
+  var _config = new confio.confio(_config_path, __dirname + '../config/pot.json');
+
   // Getters
+
+  self.config_path = function()
+  {
+    return _config_path;
+  };
 
   self.path = function()
   {
@@ -88,19 +109,31 @@ function pot(path, repository, branch)
     });
   };
 
+  var __setup_try__ = function()
+  {
+    return __setup_path__.then(wait_connection).then(function()
+    {
+      return nodegit.Clone(_repository, _path, {checkoutBranch: _branch});
+    });
+  };
+
   var __setup__ = function()
   {
     return new Promise(function(resolve)
     {
-      __setup_path__().then(wait_connection).then(function()
+      schedule(function()
       {
-        return nodegit.Clone(_repository, _path, {checkoutBranch: _branch});
-      }).then(resolve).catch(function(){
-        setTimeout(function()
+        _config.set('setup_last', new Date().getTime());
+        __setup_try__().then(function()
         {
-          __setup__().then(resolve);
-        }, settings.setup_retry);
-      });
+          _config.set('setup_retries', 0);
+          resolve();
+        }).catch(function()
+        {
+          _config.set('setup_retries', _config.get('setup_retries') + 1);
+          __setup__.then(resolve);
+        });
+      }, _config.get('setup_last') + Math.min(Math.pow(2, _config.get('setup_retries')) * settings.setup_time_unit, settings.setup_max_wait));
     });
   };
 }
