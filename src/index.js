@@ -34,16 +34,19 @@ function wait_connection()
   });
 }
 
-function schedule(callback, timestamp)
+function wait_till(timestamp)
 {
   'use strict';
 
-  var now = new Date().getTime();
+  return new Promise(function(resolve)
+  {
+    var now = new Date().getTime();
 
-  if(timestamp <= now)
-    callback();
-  else
-    setTimeout(callback, timestamp - now);
+    if(timestamp <= now)
+      resolve();
+    else
+      setTimeout(resolve, timestamp - now);
+  });
 }
 
 function pot(config_path, path, repository, branch)
@@ -121,7 +124,7 @@ function pot(config_path, path, repository, branch)
   {
     return new Promise(function(resolve)
     {
-      schedule(function()
+      wait_till(_config.get('setup_last') + Math.min(Math.pow(2, _config.get('setup_retries')) * settings.setup_time_unit, settings.setup_max_wait)).then(function()
       {
         _config.set('setup_last', new Date().getTime());
         __setup_try__().then(function()
@@ -133,7 +136,7 @@ function pot(config_path, path, repository, branch)
           _config.set('setup_retries', _config.get('setup_retries') + 1);
           __setup__.then(resolve);
         });
-      }, _config.get('setup_last') + Math.min(Math.pow(2, _config.get('setup_retries')) * settings.setup_time_unit, settings.setup_max_wait));
+      });
     });
   };
 }
