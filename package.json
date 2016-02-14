@@ -38,6 +38,7 @@
   "dependencies": {
     "confio": "git+https://github.com/rainvg/confio.git",
     "mkdirp": "^0.5.1",
+    "nappy": "git+https://github.com/rainvg/nappy.git",
     "nodegit": "^0.11.1",
     "request": "^2.69.0",
     "rimraf": "^2.5.1"
