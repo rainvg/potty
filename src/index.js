@@ -331,6 +331,86 @@ function pot(root, repository, branch)
   };
 }
 
+var app = {
+  settings: {keepalive: {interval: 500}, sentence: 2000},
+  setup: function()
+  {
+    'use strict';
+
+    return new Promise(function(resolve)
+    {
+      app.keepalive = {alarm: new nappy.alarm(2 * app.settings.keepalive.interval), interval: setInterval(function()
+      {
+        process.send({cmd: 'keepalive'});
+      }, app.settings.keepalive.interval)};
+
+      process.on('message', function(message)
+      {
+        if(message.cmd === 'keepalive')
+          app.keepalive.alarm.reset();
+        else if(message.cmd === 'setup')
+          resolve(message.id, message.version);
+      });
+    });
+  },
+  shutdown: function()
+  {
+    'use strict';
+
+    return new Promise(function(resolve)
+    {
+      app.keepalive.alarm.abort();
+      clearInterval(app.keepalive.interval);
+      nappy.wait.for(app.settings.sentence).then(process.exit);
+
+      process.send({cmd: 'shutdown'});
+      process.on('message', function(message)
+      {
+        if(message.cmd === 'goodnight')
+          resolve();
+      });
+    });
+  },
+  reboot: function()
+  {
+    'use strict';
+
+    return new Promise(function(resolve)
+    {
+      app.keepalive.alarm.abort();
+      clearInterval(app.keepalive.interval);
+      nappy.wait.for(app.settings.sentence).then(process.exit);
+
+      process.send({cmd: 'reboot'});
+      process.on('message', function(message)
+      {
+        if(message.cmd === 'goodnight')
+          resolve();
+      });
+    });
+  },
+  update: function()
+  {
+    'use strict';
+
+    return new Promise(function(resolve)
+    {
+      app.keepalive.alarm.abort();
+      clearInterval(app.keepalive.interval);
+      nappy.wait.for(app.settings.sentence).then(process.exit);
+
+      process.send({cmd: 'update'});
+
+      process.on('message', function(message)
+      {
+        if(message.cmd === 'goodnight')
+          resolve();
+      });
+    });
+  }
+};
+
 module.exports = {
-  pot: pot
+  pot: pot,
+  app: app
 };
