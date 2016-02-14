@@ -3,6 +3,7 @@ var nodegit = require('nodegit');
 var rimraf = require('rimraf');
 var mkdirp = require('mkdirp');
 var confio = require('confio');
+var path = require('path');
 
 var wait = {
   for: function(milliseconds)
@@ -39,13 +40,13 @@ var wait = {
   }
 };
 
-function pot(path, repository, branch)
+function pot(root, repository, branch)
 {
   'use strict';
 
   // Settings
 
-  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}};
+  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -54,17 +55,27 @@ function pot(path, repository, branch)
 
   // Constructor
 
-  var _path = path;
+  var _path = {root: root, app: path.resolve(root, 'app'), resources: path.resolve(root, 'resources')};
   var _repository = repository;
-  var _branch = branch;
+  var _branch = {local: branch, remote: 'origin/' + branch};
 
   var _config = new confio.confio(path + '/potty.json', __dirname + '/../config/pot.json');
 
   // Getters
 
-  self.path = function()
-  {
-    return _path;
+  self.path = {
+    root: function()
+    {
+      return _path.root;
+    },
+    app: function()
+    {
+      return _path.app;
+    },
+    resources: function()
+    {
+      return _path.resources;
+    }
   };
 
   self.repository = function()
@@ -72,9 +83,15 @@ function pot(path, repository, branch)
     return _repository;
   };
 
-  self.branch = function()
-  {
-    return _branch;
+  self.branch = {
+    local: function()
+    {
+      return _branch.local;
+    },
+    remote: function()
+    {
+      return _branch.remote;
+    }
   };
 
   // Private methods
@@ -102,9 +119,9 @@ function pot(path, repository, branch)
     {
       (function loop()
       {
-        __setup_try__(_path + '/app').then(function()
+        __setup_try__(_path.app).then(function()
         {
-          return __setup_try__(_path + '/resources');
+          return __setup_try__(_path.resources);
         }).then(resolve).catch(function()
         {
           wait.for(settings.path_setup.retry).then(loop);
@@ -119,7 +136,7 @@ function pot(path, repository, branch)
     {
       return wait.connection().then(function()
       {
-        return nodegit.Clone(_repository, _path + '/app', {checkoutBranch: _branch});
+        return nodegit.Clone(_repository, _path.app, {checkoutBranch: _branch.local});
       });
     };
 
@@ -152,6 +169,45 @@ function pot(path, repository, branch)
         });
       });
     });
+  };
+
+  var __pull__ = function()
+  {
+    var __pull_try__ = function()
+    {
+      return wait.connection().then(function()
+      {
+        return nodegit.Repository.open(_path.app);
+      }).then(function(repository)
+      {
+        return repository.fetch('origin').then(function()
+        {
+          return repository.mergeBranches(_branch.local, _branch.remote);
+        });
+      });
+    };
+
+    return new Promise(function(resolve)
+    {
+      var retries = 0;
+
+      (function loop()
+      {
+        if(retries < settings.pull.retries)
+          __pull_try__().then(resolve).catch(function()
+          {
+            retries++;
+            loop();
+          });
+        else
+          __setup__().then(resolve);
+      })();
+    });
+  };
+
+  self.update = function()
+  {
+    return __pull__();
   };
 }
 
