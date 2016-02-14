@@ -12,7 +12,7 @@ function pot(root, repository, branch)
 
   // Settings
 
-  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, run: {keepalive: {interval: 500}, sentence: 2000}};
+  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, run: {keepalive: {interval: 500}, sentence: 2000, log: {max_length: 1048576}}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -26,6 +26,7 @@ function pot(root, repository, branch)
   var _branch = {local: branch, remote: 'origin/' + branch};
 
   var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
+  var _events = {start: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
 
   // Getters
 
@@ -58,6 +59,16 @@ function pot(root, repository, branch)
     {
       return _branch.remote;
     }
+  };
+
+  // Events
+
+  self.on = function(event, callback)
+  {
+    if(!(event in _events))
+      throw {code: 2, description: 'Event does not exist.', url: ''};
+
+    _events[event] = callback;
   };
 
   // Private methods
@@ -197,7 +208,10 @@ function pot(root, repository, branch)
         try
         {
           if(updated)
+          {
+            _events.update();
             _config.set('pull_retries', 0);
+          }
           else
             _config.set('pull_retries', _config.get('pull_retries') + 1);
 
@@ -212,10 +226,18 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
-      var child = child_process.fork(_path.app, {cwd: _path.resources});
+      var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true});
       var will = null;
 
-      var __bury__ = function()
+      var log = '';
+      child.stdio.on('data', function(data)
+      {
+        log += data;
+        if(log.length > settings.run.log.max_length)
+          log = log.slice(log.length - settings.run.log.max_length);
+      });
+
+      var __bury__ = function(reason)
       {
         if(child.buried) return;
 
@@ -225,10 +247,15 @@ function pot(root, repository, branch)
         ({
           null: function()
           {
+            _events.error({reason: reason, log: log});
             __update__().then(loop);
           },
-          shutdown: process.exit,
-          reboot: loop,
+          shutdown: _events.shutdown,
+          reboot: function()
+          {
+            _events.reboot();
+            loop();
+          },
           update: function()
           {
             __update__(true).then(loop);
@@ -236,10 +263,10 @@ function pot(root, repository, branch)
         }[will])();
       };
 
-      child.on('close', __bury__);
-      child.on('disconnect', __bury__);
-      child.on('error', __bury__);
-      child.on('exit', __bury__);
+      child.on('close', function() {__bury__('close');});
+      child.on('disconnect', function() {__bury__('disconnect');});
+      child.on('error', function() {__bury__('error');});
+      child.on('exit', function() {__bury__('exit');});
 
       var keepalive = new nappy.alarm(2 * settings.run.keepalive.interval);
       keepalive.then(child.kill);
@@ -248,6 +275,12 @@ function pot(root, repository, branch)
       {
         if(message.cmd === 'keepalive')
         {
+          if(!child.started)
+          {
+            _events.start();
+            child.started = true;
+          }
+
           keepalive.reset();
           child.send({cmd: 'keepalive'});
         }
