@@ -4,6 +4,7 @@ var rimraf = require('rimraf');
 var mkdirp = require('mkdirp');
 var confio = require('confio');
 var path = require('path');
+var child_process = require('child_process');
 
 function pot(root, repository, branch)
 {
@@ -11,7 +12,7 @@ function pot(root, repository, branch)
 
   // Settings
 
-  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}};
+  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, run: {keepalive: {interval: 500}, sentence: 2000}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -170,9 +171,60 @@ function pot(root, repository, branch)
     });
   };
 
-  self.update = function()
+  var __update__ = function()
   {
     return __pull__();
+  };
+
+  // Methods
+
+  self.run = function()
+  {
+    (function loop()
+    {
+      var child = child_process.fork(_path.app, {silent: true, cwd: _path.resources});
+      var will = null;
+
+      var keepalive = new nappy.alarm(2 * settings.keepalive.interval);
+      keepalive.then(child.kill);
+
+      child.on('message', function(message)
+      {
+        if(message.cmd === 'keepalive')
+        {
+          keepalive.reset();
+          child.send({cmd: 'keepalive'});
+        }
+        else if(message.cmd in ['shutdown', 'reboot', 'update'])
+        {
+          will = message.cmd;
+          nappy.wait.for(settings.sentence).then(function()
+          {
+            if(will !== 'executed')
+            {
+              will = null;
+              child.kill();
+            }
+          });
+        }
+      });
+
+      child.on('exit', function()
+      {
+        ({
+          none: function()
+          {
+            __update__().then(loop);
+          },
+          shutdown: process.exit,
+          reboot: loop,
+          update: function()
+          {
+            __update__(true).then(loop);
+          }
+        }[will])();
+      });
+    })();
   };
 }
 
