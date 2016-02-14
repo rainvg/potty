@@ -5,6 +5,9 @@ var mkdirp = require('mkdirp');
 var confio = require('confio');
 var path = require('path');
 var child_process = require('child_process');
+var randomstring = require('randomstring');
+
+var version = require('../package.json').version;
 
 function pot(root, repository, branch)
 {
@@ -12,7 +15,7 @@ function pot(root, repository, branch)
 
   // Settings
 
-  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, run: {keepalive: {interval: 500}, sentence: 2000, log: {max_length: 1048576}}};
+  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, run: {keepalive: {interval: 500}, sentence: 2000, log: {max_length: 1048576}}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -26,7 +29,7 @@ function pot(root, repository, branch)
   var _branch = {local: branch, remote: 'origin/' + branch};
 
   var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
-  var _events = {start: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
+  var _events = {start: function(){}, data: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
 
   // Getters
 
@@ -59,6 +62,19 @@ function pot(root, repository, branch)
     {
       return _branch.remote;
     }
+  };
+
+  self.id = function()
+  {
+    if(_config.get('id') === '')
+    {
+      try
+      {
+        _config.set('id', randomstring.generate(settings.id.length));
+      } catch(error) {}
+    }
+
+    return _config.get('id');
   };
 
   // Events
@@ -233,6 +249,8 @@ function pot(root, repository, branch)
 
       child.stdout.on('data', function(data)
       {
+        _events.data(data);
+
         log.stdout += data;
         if(log.stdout.length > settings.run.log.max_length)
           log.stdout = log.stdout.slice(log.stdout.length - settings.run.log.max_length);
@@ -287,6 +305,8 @@ function pot(root, repository, branch)
           {
             _events.start();
             child.started = true;
+
+            child.send({cmd: 'setup', version: version, id: self.id()});
           }
 
           keepalive.reset();
