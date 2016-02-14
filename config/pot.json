@@ -1,5 +1,7 @@
 {
   "setup_retries": 0,
   "setup_last": 0,
-  "head": ""
+  "head": "",
+  "pull_retries": 0,
+  "pull_last": 0
 }

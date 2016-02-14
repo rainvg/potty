@@ -12,7 +12,7 @@ function pot(root, repository, branch)
 
   // Settings
 
-  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, run: {keepalive: {interval: 500}, sentence: 2000}};
+  var settings = {path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, run: {keepalive: {interval: 500}, sentence: 2000}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -149,19 +149,6 @@ function pot(root, repository, branch)
         return repository.fetch('origin').then(function()
         {
           return repository.mergeBranches(_branch.local, _branch.remote);
-        }).then(function()
-        {
-          return repository.getBranchCommit(_branch.local);
-        }).then(function(commit)
-        {
-          var updated = _config.get('head') !== commit.id().toString();
-
-          try
-          {
-            _config.set('head', commit.id().toString());
-          } catch(error) {}
-
-          return Promise.resolve(updated);
         });
       });
     };
@@ -181,16 +168,42 @@ function pot(root, repository, branch)
         else
           __setup__().then(resolve);
       })();
+    }).then(function()
+    {
+      return nodegit.Repository.open(_path.app);
+    }).then(function(repository)
+    {
+      return repository.getBranchCommit(_branch.local);
+    }).then(function(commit)
+    {
+      var updated = _config.get('head') !== commit.id().toString();
+
+      try
+      {
+        _config.set('head', commit.id().toString());
+      } catch(error) {}
+
+      return Promise.resolve(updated);
     });
   };
 
-  var __update__ = function()
+  var __update__ = function(force)
   {
-    return __pull__().then(function(updated)
-    {
-      if(updated)
-        console.log('Repository actually updated.');
-    });
+    if(!force && new Date().getTime() < _config.get('pull_last') + Math.min(Math.pow(2, _config.get('pull_retries')) * settings.update.ignore.min, settings.update.ignore.max))
+      return Promise.resolve();
+    else
+      return __pull__().then(function(updated)
+      {
+        try
+        {
+          if(updated)
+            _config.set('pull_retries', 0);
+          else
+            _config.set('pull_retries', _config.get('pull_retries') + 1);
+
+          _config.set('pull_last', new Date().getTime());
+        } catch(error) {}
+      });
   };
 
   // Methods
