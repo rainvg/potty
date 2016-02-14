@@ -182,37 +182,18 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
-      var child = child_process.fork(_path.app, {silent: true, cwd: _path.resources});
+      var child = child_process.fork(_path.app, {cwd: _path.resources});
       var will = null;
 
-      var keepalive = new nappy.alarm(2 * settings.keepalive.interval);
-      keepalive.then(child.kill);
-
-      child.on('message', function(message)
+      var __bury__ = function()
       {
-        if(message.cmd === 'keepalive')
-        {
-          keepalive.reset();
-          child.send({cmd: 'keepalive'});
-        }
-        else if(message.cmd in ['shutdown', 'reboot', 'update'])
-        {
-          will = message.cmd;
-          nappy.wait.for(settings.sentence).then(function()
-          {
-            if(will !== 'executed')
-            {
-              will = null;
-              child.kill();
-            }
-          });
-        }
-      });
+        if(child.buried) return;
 
-      child.on('exit', function()
-      {
+        child.buried = true;
+        child.kill();
+
         ({
-          none: function()
+          null: function()
           {
             __update__().then(loop);
           },
@@ -223,6 +204,37 @@ function pot(root, repository, branch)
             __update__(true).then(loop);
           }
         }[will])();
+      };
+
+      child.on('close', __bury__);
+      child.on('disconnect', __bury__);
+      child.on('error', __bury__);
+      child.on('exit', __bury__);
+
+      var keepalive = new nappy.alarm(2 * settings.run.keepalive.interval);
+      keepalive.then(child.kill);
+
+      child.on('message', function(message)
+      {
+        if(message.cmd === 'keepalive')
+        {
+          keepalive.reset();
+          child.send({cmd: 'keepalive'});
+        }
+        else if(message.cmd === 'shutdown' || message.cmd === 'reboot' || message.cmd === 'update')
+        {
+          will = message.cmd;
+          child.send({cmd: 'goodnight'});
+
+          nappy.wait.for(settings.run.sentence).then(function()
+          {
+            if(will !== 'executed')
+            {
+              will = null;
+              child.kill();
+            }
+          });
+        }
       });
     })();
   };
