@@ -229,12 +229,20 @@ function pot(root, repository, branch)
       var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true});
       var will = null;
 
-      var log = '';
-      child.stdio.on('data', function(data)
+      var log = {stdout: '', stderr: ''};
+
+      child.stdout.on('data', function(data)
       {
-        log += data;
-        if(log.length > settings.run.log.max_length)
-          log = log.slice(log.length - settings.run.log.max_length);
+        log.stdout += data;
+        if(log.stdout.length > settings.run.log.max_length)
+          log.stdout = log.stdout.slice(log.stdout.length - settings.run.log.max_length);
+      });
+
+      child.stderr.on('data', function(data)
+      {
+        log.stderr += data;
+        if(log.stderr.length > settings.run.log.max_length)
+          log.stderr = log.stderr.slice(log.stderr.length - settings.run.log.max_length);
       });
 
       var __bury__ = function(reason)
@@ -263,10 +271,10 @@ function pot(root, repository, branch)
         }[will])();
       };
 
-      child.on('close', function() {__bury__('close');});
-      child.on('disconnect', function() {__bury__('disconnect');});
-      child.on('error', function() {__bury__('error');});
-      child.on('exit', function() {__bury__('exit');});
+      child.on('close', function(code, signal) {__bury__({event: 'close', code: code, signal: signal});});
+      child.on('disconnect', function() {__bury__({event: 'disconnect'});});
+      child.on('error', function(error) {__bury__({event: 'error', error: error});});
+      child.on('exit', function(code, signal) {__bury__({event: 'exit', code: code, signal: signal});});
 
       var keepalive = new nappy.alarm(2 * settings.run.keepalive.interval);
       keepalive.then(child.kill);
