@@ -149,6 +149,19 @@ function pot(root, repository, branch)
         return repository.fetch('origin').then(function()
         {
           return repository.mergeBranches(_branch.local, _branch.remote);
+        }).then(function()
+        {
+          return repository.getBranchCommit(_branch.local);
+        }).then(function(commit)
+        {
+          var updated = _config.get('head') !== commit.id().toString();
+
+          try
+          {
+            _config.set('head', commit.id().toString());
+          } catch(error) {}
+
+          return Promise.resolve(updated);
         });
       });
     };
@@ -173,7 +186,11 @@ function pot(root, repository, branch)
 
   var __update__ = function()
   {
-    return __pull__();
+    return __pull__().then(function(updated)
+    {
+      if(updated)
+        console.log('Repository actually updated.');
+    });
   };
 
   // Methods
