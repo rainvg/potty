@@ -25,7 +25,7 @@ function pot(root, repository, branch)
   var _repository = repository;
   var _branch = {local: branch, remote: 'origin/' + branch};
 
-  var _config = new confio.confio(path + '/potty.json', __dirname + '/../config/pot.json');
+  var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
 
   // Getters
 
