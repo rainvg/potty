@@ -305,7 +305,6 @@ function pot(root, repository, branch)
           {
             _events.start();
             child.started = true;
-
             child.send({cmd: 'setup', version: version, id: self.id()});
           }
 
@@ -344,12 +343,14 @@ var app = {
         process.send({cmd: 'keepalive'});
       }, app.settings.keepalive.interval)};
 
+      app.keepalive.then(process.exit);
+
       process.on('message', function(message)
       {
         if(message.cmd === 'keepalive')
           app.keepalive.alarm.reset();
         else if(message.cmd === 'setup')
-          resolve(message.id, message.version);
+          resolve({id: message.id, version: message.version});
       });
     });
   },
