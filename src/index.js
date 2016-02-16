@@ -15,7 +15,7 @@ function pot(root, repository, branch)
 
   // Settings
 
-  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, run: {keepalive: {interval: 500}, sentence: 2000, log: {max_length: 1048576}}};
+  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, start: {keepalive: {interval: 500}, sentence: 2000, log: {max_length: 1048576}}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -24,7 +24,7 @@ function pot(root, repository, branch)
 
   // Constructor
 
-  var _path = {root: root, app: path.resolve(root, 'app'), resources: path.resolve(root, 'resources')};
+  var _path = {root: root, app: path.resolve(root, 'app'), modules: {app: path.resolve(root, 'app', 'node_modules'), pot: path.resolve(path.dirname(module.parent.filename), 'node_modules')}, resources: path.resolve(root, 'resources')};
   var _repository = repository;
   var _branch = {local: branch, remote: 'origin/' + branch};
 
@@ -45,6 +45,16 @@ function pot(root, repository, branch)
     resources: function()
     {
       return _path.resources;
+    },
+    modules: {
+      app: function()
+      {
+        return _path.modules.app;
+      },
+      pot: function()
+      {
+        return _path.modules.pot;
+      }
     }
   };
 
@@ -238,11 +248,11 @@ function pot(root, repository, branch)
 
   // Methods
 
-  self.run = function()
+  self.start = function()
   {
     (function loop()
     {
-      var child = child_process.fork(_path.app, {cwd: _path.resources, env: {'POTTY': __filename}, silent: true});
+      var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true, env: {NODE_PATH: _path.modules.pot}});
       var will = null;
 
       var log = {stdout: '', stderr: ''};
@@ -252,15 +262,15 @@ function pot(root, repository, branch)
         _events.data(data);
 
         log.stdout += data;
-        if(log.stdout.length > settings.run.log.max_length)
-          log.stdout = log.stdout.slice(log.stdout.length - settings.run.log.max_length);
+        if(log.stdout.length > settings.start.log.max_length)
+          log.stdout = log.stdout.slice(log.stdout.length - settings.start.log.max_length);
       });
 
       child.stderr.on('data', function(data)
       {
         log.stderr += data;
-        if(log.stderr.length > settings.run.log.max_length)
-          log.stderr = log.stderr.slice(log.stderr.length - settings.run.log.max_length);
+        if(log.stderr.length > settings.start.log.max_length)
+          log.stderr = log.stderr.slice(log.stderr.length - settings.start.log.max_length);
       });
 
       var __bury__ = function(reason)
@@ -296,7 +306,7 @@ function pot(root, repository, branch)
       child.on('error', function(error) {__bury__({event: 'error', error: error});});
       child.on('exit', function(code, signal) {__bury__({event: 'exit', code: code, signal: signal});});
 
-      var keepalive = new nappy.alarm(2 * settings.run.keepalive.interval);
+      var keepalive = new nappy.alarm(2 * settings.start.keepalive.interval);
       keepalive.then(child.kill);
 
       child.on('message', function(message)
@@ -318,7 +328,7 @@ function pot(root, repository, branch)
           will = message.cmd;
           child.send({cmd: 'goodnight'});
 
-          nappy.wait.for(settings.run.sentence).then(function()
+          nappy.wait.for(settings.start.sentence).then(function()
           {
             if(will !== 'executed')
             {
