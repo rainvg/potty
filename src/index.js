@@ -242,7 +242,7 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
-      var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true});
+      var child = child_process.fork(_path.app, {cwd: _path.resources, env: {'POTTY': __filename}, silent: true});
       var will = null;
 
       var log = {stdout: '', stderr: ''};
@@ -287,6 +287,8 @@ function pot(root, repository, branch)
             __update__(true).then(loop);
           }
         }[will])();
+
+        will = 'executed';
       };
 
       child.on('close', function(code, signal) {__bury__({event: 'close', code: code, signal: signal});});
@@ -343,7 +345,7 @@ var app = {
         process.send({cmd: 'keepalive'});
       }, app.settings.keepalive.interval)};
 
-      app.keepalive.then(process.exit);
+      app.keepalive.alarm.then(process.exit);
 
       process.on('message', function(message)
       {
