@@ -8,6 +8,7 @@ var child_process = require('child_process');
 var randomstring = require('randomstring');
 
 var version = require('../package.json').version;
+var npm = path.resolve('../node_modules/npm', require('../node_modules/npm/package.json').bin.npm);
 
 function pot(root, repository, branch)
 {
@@ -98,6 +99,22 @@ function pot(root, repository, branch)
   };
 
   // Private methods
+
+  var __npm_install__ = function()
+  {
+    return new Promise(function(resolve, reject)
+    {
+      var install = child_process.fork(npm, ['instal'], {cwd: _path.app, silent: true});
+      install.on('error', reject);
+      install.on('exit', function(code)
+      {
+        if(code)
+          reject();
+        else
+          resolve();
+      });
+    });
+  };
 
   var __setup_path__ = function()
   {
@@ -243,6 +260,14 @@ function pot(root, repository, branch)
 
           _config.set('pull_last', new Date().getTime());
         } catch(error) {}
+
+        return updated;
+      }).then(function(updated)
+      {
+        if(updated)
+          return __npm_install__();
+        else
+          return Promise.resolve();
       });
   };
 
