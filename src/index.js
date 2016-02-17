@@ -9,6 +9,7 @@ var randomstring = require('randomstring');
 
 var version = require('../package.json').version;
 var npm = path.resolve(__dirname, '../node_modules/npm', require('../node_modules/npm/package.json').bin.npm);
+var node = process.argv[0];
 
 function pot(root, repository, branch)
 {
@@ -278,7 +279,8 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
-      var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true, env: {NODE_PATH: _path.modules.pot}});
+      var child = child_process.spawn(node, [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {NODE_PATH: _path.modules.pot}});
+
       var will = null;
 
       var log = {stdout: '', stderr: ''};
