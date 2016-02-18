@@ -6,9 +6,20 @@ var confio = require('confio');
 var path = require('path');
 var child_process = require('child_process');
 var randomstring = require('randomstring');
+var fs = require('fs');
+
+function package_json(pth)
+{
+  'use strict';
+
+  if(fs.existsSync(path.resolve(path.dirname(pth), 'package.json')))
+    return path.resolve(path.dirname(pth), 'package.json');
+  else
+    return package_json(path.dirname(pth));
+}
 
 var version = require('../package.json').version;
-var npm = path.resolve(__dirname, '../node_modules/npm', require('../node_modules/npm/package.json').bin.npm);
+var npm = path.resolve(path.dirname(package_json(require.resolve('npm'))), require(package_json(require.resolve('npm'))).bin.npm);
 var node = process.argv[0];
 
 function pot(root, repository, branch)
@@ -26,7 +37,7 @@ function pot(root, repository, branch)
 
   // Constructor
 
-  var _path = {root: root, app: path.resolve(root, 'app'), modules: {app: path.resolve(root, 'app', 'node_modules'), pot: path.resolve(path.dirname(module.parent.filename), 'node_modules')}, resources: path.resolve(root, 'resources')};
+  var _path = {root: root, app: path.resolve(root, 'app'), resources: path.resolve(root, 'resources')};
   var _repository = repository;
   var _branch = {local: branch, remote: 'origin/' + branch};
 
@@ -47,16 +58,6 @@ function pot(root, repository, branch)
     resources: function()
     {
       return _path.resources;
-    },
-    modules: {
-      app: function()
-      {
-        return _path.modules.app;
-      },
-      pot: function()
-      {
-        return _path.modules.pot;
-      }
     }
   };
 
@@ -279,7 +280,7 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
-      var child = child_process.spawn(node, [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {NODE_PATH: _path.modules.pot}});
+      var child = child_process.spawn(node, [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {POTTY: __filename}});
 
       var will = null;
 

@@ -25,7 +25,12 @@
     "url": "https://github.com/rainvg/potty/issues"
   },
   "homepage": "https://github.com/rainvg/potty#readme",
+  "engines":
+  {
+    "electron": "0.20.7"
+  },
   "devDependencies": {
+    "electron-rebuild": "^1.1.3",
     "gulp": "^3.9.0",
     "gulp-jshint": "^2.0.0",
     "gulp-mocha": "^2.2.0",
