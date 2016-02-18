@@ -6,20 +6,8 @@ var confio = require('confio');
 var path = require('path');
 var child_process = require('child_process');
 var randomstring = require('randomstring');
-var fs = require('fs');
-
-function package_json(pth)
-{
-  'use strict';
-
-  if(fs.existsSync(path.resolve(path.dirname(pth), 'package.json')))
-    return path.resolve(path.dirname(pth), 'package.json');
-  else
-    return package_json(path.dirname(pth));
-}
 
 var version = require('../package.json').version;
-var npm = path.resolve(path.dirname(package_json(require.resolve('npm'))), require(package_json(require.resolve('npm'))).bin.npm);
 var node = process.argv[0];
 
 function pot(root, repository, branch)
@@ -101,23 +89,6 @@ function pot(root, repository, branch)
   };
 
   // Private methods
-
-  var __npm_install__ = function()
-  {
-    return new Promise(function(resolve, reject)
-    {
-      var install = child_process.fork(npm, ['install'], {cwd: _path.app, silent: true});
-
-      install.on('error', reject);
-      install.on('exit', function(code)
-      {
-        if(code)
-          reject();
-        else
-          resolve();
-      });
-    });
-  };
 
   var __setup_path__ = function()
   {
@@ -263,14 +234,6 @@ function pot(root, repository, branch)
 
           _config.set('pull_last', new Date().getTime());
         } catch(error) {}
-
-        return updated;
-      }).then(function(updated)
-      {
-        if(updated)
-          return __npm_install__();
-        else
-          return Promise.resolve();
       });
   };
 
