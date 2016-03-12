@@ -30,6 +30,7 @@ function pot(root, repository, branch)
 
   var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
   var _events = {start: function(){}, data: function(){}, message: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
+  var _handles = {message: function(){}};
 
   // Getters
 
@@ -87,9 +88,14 @@ function pot(root, repository, branch)
     _events[event] = callback;
   };
 
-  // Private methods
+  // Handles
 
-  var __message__ = function(){};
+  self.message = function(message)
+  {
+    _handles.message(message);
+  };
+
+  // Private methods
 
   var __setup_path__ = function()
   {
@@ -248,7 +254,7 @@ function pot(root, repository, branch)
     {
       var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true, env: {POTTY: __filename}});
 
-      __message__ = function(message)
+      _handles.message = function(message)
       {
         child.send({cmd: 'message', message: message});
       };
@@ -277,7 +283,7 @@ function pot(root, repository, branch)
       {
         if(child.buried) return;
 
-        __message__ = function(){};
+        _handles.message = function(){};
 
         child.buried = true;
         child.kill();
