@@ -8,7 +8,6 @@ var child_process = require('child_process');
 var randomstring = require('randomstring');
 
 var version = require('../package.json').version;
-var node = process.argv[0];
 
 function pot(root, repository, branch)
 {
@@ -225,15 +224,14 @@ function pot(root, repository, branch)
         try
         {
           if(updated)
-          {
-            _events.update();
             _config.set('pull_retries', 0);
-          }
           else
             _config.set('pull_retries', _config.get('pull_retries') + 1);
 
           _config.set('pull_last', new Date().getTime());
         } catch(error) {}
+
+        return updated;
       });
   };
 
@@ -243,7 +241,7 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
-      var child = child_process.spawn(node, [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {POTTY: __filename}});
+      var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true, env: {POTTY: __filename}});
 
       var will = null;
 
@@ -286,11 +284,17 @@ function pot(root, repository, branch)
           },
           update: function()
           {
-            __update__(true).then(loop);
+            __update__(true).then(function(updated)
+              {
+                if(updated)
+                  _events.update();
+                else
+                  _events.reboot();
+
+                loop();
+              });
           }
         }[will])();
-
-        will = 'executed';
       };
 
       child.on('close', function(code, signal) {__bury__({event: 'close', code: code, signal: signal});});
@@ -322,7 +326,7 @@ function pot(root, repository, branch)
 
           nappy.wait.for(settings.start.sentence).then(function()
           {
-            if(will !== 'executed')
+            if(!(child.buried))
             {
               will = null;
               child.kill();
