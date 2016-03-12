@@ -29,7 +29,7 @@ function pot(root, repository, branch)
   var _branch = {local: branch, remote: 'origin/' + branch};
 
   var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
-  var _events = {start: function(){}, data: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
+  var _events = {start: function(){}, data: function(){}, message: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
 
   // Getters
 
@@ -88,6 +88,8 @@ function pot(root, repository, branch)
   };
 
   // Private methods
+
+  var __message__ = function(){};
 
   var __setup_path__ = function()
   {
@@ -243,6 +245,11 @@ function pot(root, repository, branch)
     {
       var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true, env: {POTTY: __filename}});
 
+      __message__ = function(message)
+      {
+        child.send({cmd: 'message', message: message});
+      };
+
       var will = null;
 
       var log = {stdout: '', stderr: ''};
@@ -266,6 +273,8 @@ function pot(root, repository, branch)
       var __bury__ = function(reason)
       {
         if(child.buried) return;
+
+        __message__ = function(){};
 
         child.buried = true;
         child.kill();
@@ -333,6 +342,10 @@ function pot(root, repository, branch)
             }
           });
         }
+        else if(message.cmd === 'message')
+        {
+          _events.message(message.message);
+        }
       });
     })();
   };
@@ -340,9 +353,12 @@ function pot(root, repository, branch)
 
 var app = {
   settings: {keepalive: {interval: 500}, sentence: 2000},
+  events: {message: function(){}},
   setup: function()
   {
     'use strict';
+
+    var _resolved = false;
 
     return new Promise(function(resolve)
     {
@@ -357,8 +373,13 @@ var app = {
       {
         if(message.cmd === 'keepalive')
           app.keepalive.alarm.reset();
-        else if(message.cmd === 'setup')
+        else if(message.cmd === 'setup' && !_resolved)
+        {
+          _resolved = true;
           resolve({id: message.id, version: message.version});
+        }
+        else if(message.cmd === 'message')
+          app.events.message(message.message);
       });
     });
   },
@@ -416,6 +437,17 @@ var app = {
           resolve();
       });
     });
+  },
+  on: function(event, callback)
+  {
+    if(!(event in app.events))
+      throw {code: 2, description: 'Event does not exist.', url: ''};
+
+    app.events[event] = callback;
+  },
+  message: function(message)
+  {
+    process.send({cmd: 'message', message: message});
   }
 };
 
