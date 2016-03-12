@@ -327,9 +327,9 @@ function pot(root, repository, branch)
         {
           if(!child.started)
           {
-            _events.start();
             child.started = true;
             child.send({cmd: 'setup', version: version, id: self.id()});
+            _events.start();
           }
 
           keepalive.reset();
