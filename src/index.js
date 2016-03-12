@@ -226,7 +226,10 @@ function pot(root, repository, branch)
         try
         {
           if(updated)
+          {
             _config.set('pull_retries', 0);
+            _events.update();
+          }
           else
             _config.set('pull_retries', _config.get('pull_retries') + 1);
 
@@ -295,9 +298,7 @@ function pot(root, repository, branch)
           {
             __update__(true).then(function(updated)
               {
-                if(updated)
-                  _events.update();
-                else
+                if(!updated)
                   _events.reboot();
 
                 loop();
