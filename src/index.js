@@ -30,7 +30,7 @@ function pot(root, repository, branch)
 
   var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
   var _events = {start: function(){}, data: function(){}, message: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
-  var _handles = {message: function(){}};
+  var _handles = {message: function(){}, bury: function(){}};
 
   // Getters
 
@@ -93,6 +93,11 @@ function pot(root, repository, branch)
   self.message = function(message)
   {
     _handles.message(message);
+  };
+
+  self.bury = function()
+  {
+    _handles.bury();
   };
 
   // Private methods
@@ -254,11 +259,6 @@ function pot(root, repository, branch)
     {
       var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true, env: {POTTY: __filename}});
 
-      _handles.message = function(message)
-      {
-        child.send({cmd: 'message', message: message});
-      };
-
       var will = null;
 
       var log = {stdout: '', stderr: ''};
@@ -284,6 +284,7 @@ function pot(root, repository, branch)
         if(child.buried) return;
 
         _handles.message = function(){};
+        _handles.bury = function(){};
 
         child.buried = true;
         child.kill();
@@ -354,6 +355,16 @@ function pot(root, repository, branch)
           _events.message(message.message);
         }
       });
+
+      _handles.message = function(message)
+      {
+        child.send({cmd: 'message', message: message});
+      };
+
+      _handles.bury = function()
+      {
+        __bury__({event: 'bury'});
+      };
     })();
   };
 }
