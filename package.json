@@ -25,8 +25,7 @@
     "url": "https://github.com/rainvg/potty/issues"
   },
   "homepage": "https://github.com/rainvg/potty#readme",
-  "engines":
-  {
+  "engines": {
     "electron": "0.20.7"
   },
   "devDependencies": {

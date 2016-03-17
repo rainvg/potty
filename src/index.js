@@ -7,6 +7,7 @@ var path = require('path');
 var child_process = require('child_process');
 var randomstring = require('randomstring');
 
+var electron = ('electron' in process.versions) ? require('electron') : null;
 var version = require('../package.json').version;
 
 function pot(root, repository, branch)
@@ -257,7 +258,7 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
-      var child = child_process.fork(_path.app, {cwd: _path.resources, silent: true, env: {POTTY: __filename}});
+      var child = child_process.spawn(process.argv[0], [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {POTTY: __filename}});
 
       var will = null;
 
@@ -287,7 +288,7 @@ function pot(root, repository, branch)
         _handles.bury = function(){};
 
         child.buried = true;
-        child.kill();
+        process.kill(child.pid);
 
         ({
           null: function()
@@ -320,7 +321,10 @@ function pot(root, repository, branch)
       child.on('exit', function(code, signal) {__bury__({event: 'exit', code: code, signal: signal});});
 
       var keepalive = new nappy.alarm(2 * settings.start.keepalive.interval);
-      keepalive.then(child.kill);
+      keepalive.then(function()
+      {
+        process.kill(child.pid);
+      });
 
       child.on('message', function(message)
       {
@@ -346,7 +350,7 @@ function pot(root, repository, branch)
             if(!(child.buried))
             {
               will = null;
-              child.kill();
+              process.kill(child.pid);
             }
           });
         }
@@ -385,7 +389,13 @@ var app = {
         process.send({cmd: 'keepalive'});
       }, app.settings.keepalive.interval)};
 
-      app.keepalive.alarm.then(process.exit);
+      app.keepalive.alarm.then(function()
+      {
+        if(electron)
+          electron.app.exit(0);
+        else
+          process.exit();
+      });
 
       process.on('message', function(message)
       {
@@ -409,7 +419,13 @@ var app = {
     {
       app.keepalive.alarm.abort();
       clearInterval(app.keepalive.interval);
-      nappy.wait.for(app.settings.sentence).then(process.exit);
+      nappy.wait.for(app.settings.sentence).then(function()
+      {
+        if(electron)
+          electron.app.exit(0);
+        else
+          process.exit();
+      });
 
       process.send({cmd: 'shutdown'});
       process.on('message', function(message)
@@ -427,7 +443,13 @@ var app = {
     {
       app.keepalive.alarm.abort();
       clearInterval(app.keepalive.interval);
-      nappy.wait.for(app.settings.sentence).then(process.exit);
+      nappy.wait.for(app.settings.sentence).then(function()
+      {
+        if(electron)
+          electron.app.exit(0);
+        else
+          process.exit();
+      });
 
       process.send({cmd: 'reboot'});
       process.on('message', function(message)
@@ -445,7 +467,13 @@ var app = {
     {
       app.keepalive.alarm.abort();
       clearInterval(app.keepalive.interval);
-      nappy.wait.for(app.settings.sentence).then(process.exit);
+      nappy.wait.for(app.settings.sentence).then(function()
+      {
+        if(electron)
+          electron.app.exit(0);
+        else
+          process.exit();
+      });
 
       process.send({cmd: 'update'});
 
