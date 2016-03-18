@@ -16,7 +16,7 @@ function pot(root, repository, branch, options)
 
   // Settings
 
-  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, start: {keepalive: {interval: 500}, sentence: 2000, log: {max_length: 1048576}}};
+  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, start: {keepalive: {interval: 500, margin: 10}, sentence: 2000, log: {max_length: 1048576}}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -268,7 +268,7 @@ function pot(root, repository, branch, options)
         else
           delete process.env.ELECTRON_RUN_AS_NODE;
       }
-      
+
       var child = child_process.spawn(process.argv[0], [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {POTTY: __filename}});
 
       process.env = _env;
@@ -301,7 +301,11 @@ function pot(root, repository, branch, options)
         _handles.bury = function(){};
 
         child.buried = true;
-        genocide(child.pid);
+
+        keepalive.alarm.abort();
+        clearInterval(keepalive.interval);
+
+        genocide.genocide(child.pid);
 
         ({
           null: function()
@@ -333,10 +337,14 @@ function pot(root, repository, branch, options)
       child.on('error', function(error) {__bury__({event: 'error', error: error});});
       child.on('exit', function(code, signal) {__bury__({event: 'exit', code: code, signal: signal});});
 
-      var keepalive = new nappy.alarm(2 * settings.start.keepalive.interval);
-      keepalive.then(function()
+      var keepalive = {alarm: new nappy.alarm(settings.start.keepalive.margin * settings.start.keepalive.interval), interval: setInterval(function()
       {
-        genocide(child.pid);
+        child.send({cmd: 'keepalive'});
+      }, settings.start.keepalive.interval)};
+
+      keepalive.alarm.then(function()
+      {
+        genocide.genocide(child.pid);
       });
 
       child.on('message', function(message)
@@ -350,8 +358,7 @@ function pot(root, repository, branch, options)
             _events.start();
           }
 
-          keepalive.reset();
-          child.send({cmd: 'keepalive'});
+          keepalive.alarm.reset();
         }
         else if(message.cmd === 'shutdown' || message.cmd === 'reboot' || message.cmd === 'update')
         {
@@ -363,7 +370,7 @@ function pot(root, repository, branch, options)
             if(!(child.buried))
             {
               will = null;
-              genocide(child.pid);
+              genocide.genocide(child.pid);
             }
           });
         }
@@ -387,7 +394,7 @@ function pot(root, repository, branch, options)
 }
 
 var app = {
-  settings: {keepalive: {interval: 500}, sentence: 2000},
+  settings: {keepalive: {interval: 500, margin: 10}, sentence: 2000},
   events: {message: function(){}},
   setup: function()
   {
@@ -397,17 +404,18 @@ var app = {
 
     return new Promise(function(resolve)
     {
-      app.keepalive = {alarm: new nappy.alarm(2 * app.settings.keepalive.interval), interval: setInterval(function()
-      {
-        process.send({cmd: 'keepalive'});
-      }, app.settings.keepalive.interval)};
+      app.keepalive = {alarm: new nappy.alarm(app.settings.start.keepalive.margin * app.settings.keepalive.interval)};
 
       app.keepalive.alarm.then(genocide.seppuku);
 
       process.on('message', function(message)
       {
         if(message.cmd === 'keepalive')
+        {
+          console.log(new Date());
           app.keepalive.alarm.reset();
+          process.send({cmd: 'keepalive'});
+        }
         else if(message.cmd === 'setup' && !_resolved)
         {
           _resolved = true;
@@ -425,7 +433,6 @@ var app = {
     return new Promise(function(resolve)
     {
       app.keepalive.alarm.abort();
-      clearInterval(app.keepalive.interval);
       nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
 
       process.send({cmd: 'shutdown'});
@@ -443,7 +450,6 @@ var app = {
     return new Promise(function(resolve)
     {
       app.keepalive.alarm.abort();
-      clearInterval(app.keepalive.interval);
       nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
 
       process.send({cmd: 'reboot'});
@@ -461,7 +467,6 @@ var app = {
     return new Promise(function(resolve)
     {
       app.keepalive.alarm.abort();
-      clearInterval(app.keepalive.interval);
       nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
 
       process.send({cmd: 'update'});
