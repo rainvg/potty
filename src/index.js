@@ -10,7 +10,7 @@ var genocide = require('genocide');
 
 var version = require('../package.json').version;
 
-function pot(root, repository, branch)
+function pot(root, repository, branch, options)
 {
   'use strict';
 
@@ -28,6 +28,7 @@ function pot(root, repository, branch)
   var _path = {root: root, app: path.resolve(root, 'app'), resources: path.resolve(root, 'resources')};
   var _repository = repository;
   var _branch = {local: branch, remote: 'origin/' + branch};
+  var _options = options || {};
 
   var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
   var _events = {start: function(){}, data: function(){}, message: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
@@ -258,7 +259,19 @@ function pot(root, repository, branch)
   {
     (function loop()
     {
+      var _env = process.env;
+
+      if('ELECTRON_RUN_AS_NODE' in _options)
+      {
+        if(_options.ELECTRON_RUN_AS_NODE)
+          process.env.ELECTRON_RUN_AS_NODE = true;
+        else
+          delete process.env.ELECTRON_RUN_AS_NODE;
+      }
+      
       var child = child_process.spawn(process.argv[0], [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {POTTY: __filename}});
+
+      process.env = _env;
 
       var will = null;
 
