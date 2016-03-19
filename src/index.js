@@ -316,7 +316,11 @@ function pot(root, repository, branch, options)
 
         child.buried = true;
 
-        keepalive.alarm.abort();
+        try
+        {
+          keepalive.alarm.abort();
+        } catch(error){}
+
         clearInterval(keepalive.interval);
 
         genocide.genocide(child.pid);
@@ -449,7 +453,11 @@ var app = {
 
     return new Promise(function(resolve)
     {
-      app.keepalive.alarm.abort();
+      try
+      {
+        app.keepalive.alarm.abort();
+      } catch(error) {}
+
       nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
 
       process.send({cmd: 'shutdown'});
@@ -466,7 +474,11 @@ var app = {
 
     return new Promise(function(resolve)
     {
-      app.keepalive.alarm.abort();
+      try
+      {
+        app.keepalive.alarm.abort();
+      } catch(error) {}
+
       nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
 
       process.send({cmd: 'reboot'});
@@ -483,7 +495,11 @@ var app = {
 
     return new Promise(function(resolve)
     {
-      app.keepalive.alarm.abort();
+      try
+      {
+        app.keepalive.alarm.abort();
+      } catch(error) {}
+
       nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
 
       process.send({cmd: 'update'});
