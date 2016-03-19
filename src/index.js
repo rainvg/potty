@@ -16,7 +16,7 @@ function pot(root, repository, branch, options)
 
   // Settings
 
-  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, start: {keepalive: {interval: 500, margin: 10}, sentence: 2000, log: {max_length: 1048576}}};
+  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, start: {autoupdate: {threshold: 604800000}, keepalive: {interval: 500, margin: 10, sleep_threshold: 5000}, sentence: 2000, log: {max_length: 1048576}}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -229,35 +229,49 @@ function pot(root, repository, branch, options)
     });
   };
 
+  var __stash__ = function()
+  {
+    return new Promise(function(resolve)
+    {
+      nodegit.Repository.open(_path.app).then(function(repository)
+      {
+        return nodegit.Checkout.head(repository, {checkoutStrategy: nodegit.Checkout.STRATEGY.FORCE});
+      }).then(resolve).catch(resolve);
+    });
+  };
+
   var __update__ = function(force)
   {
-    if(!force && new Date().getTime() < _config.get('pull_last') + Math.min(Math.pow(2, _config.get('pull_retries')) * settings.update.ignore.min, settings.update.ignore.max))
-      return Promise.resolve();
-    else
-      return __pull__().then(function(updated)
-      {
-        try
+    return __stash__().then(function()
+    {
+      if(!force && new Date().getTime() < _config.get('pull_last') + Math.min(Math.pow(2, _config.get('pull_retries')) * settings.update.ignore.min, settings.update.ignore.max))
+        return Promise.resolve();
+      else
+        return __pull__().then(function(updated)
         {
-          if(updated)
+          try
           {
-            _config.set('pull_retries', 0);
-            _events.update();
-          }
-          else
-            _config.set('pull_retries', _config.get('pull_retries') + 1);
+            if(updated)
+            {
+              _config.set('pull_retries', 0);
+              _events.update();
+            }
+            else
+              _config.set('pull_retries', _config.get('pull_retries') + 1);
 
-          _config.set('pull_last', new Date().getTime());
-        } catch(error) {}
+            _config.set('pull_last', new Date().getTime());
+          } catch(error) {}
 
-        return updated;
-      });
+          return updated;
+        });
+    });
   };
 
   // Methods
 
   self.start = function()
   {
-    (function loop()
+    function loop()
     {
       var _env = process.env;
 
@@ -337,7 +351,7 @@ function pot(root, repository, branch, options)
       child.on('error', function(error) {__bury__({event: 'error', error: error});});
       child.on('exit', function(code, signal) {__bury__({event: 'exit', code: code, signal: signal});});
 
-      var keepalive = {alarm: new nappy.alarm(settings.start.keepalive.margin * settings.start.keepalive.interval), interval: setInterval(function()
+      var keepalive = {alarm: new nappy.alarm(settings.start.keepalive.margin * settings.start.keepalive.interval, {sleep_threshold: settings.start.keepalive.sleep_threshold}), interval: setInterval(function()
       {
         child.send({cmd: 'keepalive'});
       }, settings.start.keepalive.interval)};
@@ -389,12 +403,17 @@ function pot(root, repository, branch, options)
       {
         __bury__({event: 'bury'});
       };
-    })();
+    }
+
+    if(new Date().getTime() - _config.get('pull_last') >= settings.start.autoupdate.threshold)
+      __update__(true).then(loop);
+    else
+      loop();
   };
 }
 
 var app = {
-  settings: {keepalive: {interval: 500, margin: 10}, sentence: 2000},
+  settings: {keepalive: {interval: 500, margin: 10, sleep_threshold: 5000}, sentence: 2000},
   events: {message: function(){}},
   setup: function()
   {
@@ -404,15 +423,13 @@ var app = {
 
     return new Promise(function(resolve)
     {
-      app.keepalive = {alarm: new nappy.alarm(app.settings.start.keepalive.margin * app.settings.keepalive.interval)};
-
+      app.keepalive = {alarm: new nappy.alarm(app.settings.keepalive.margin * app.settings.keepalive.interval, {sleep_threshold: app.settings.keepalive.sleep_threshold})};
       app.keepalive.alarm.then(genocide.seppuku);
 
       process.on('message', function(message)
       {
         if(message.cmd === 'keepalive')
         {
-          console.log(new Date());
           app.keepalive.alarm.reset();
           process.send({cmd: 'keepalive'});
         }
