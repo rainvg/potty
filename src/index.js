@@ -283,7 +283,9 @@ function pot(root, repository, branch, options)
           delete process.env.ELECTRON_RUN_AS_NODE;
       }
 
-      var child = child_process.spawn(process.argv[0], [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc'], env: {POTTY: __filename}});
+      process.env.POTTY = __filename;
+
+      var child = child_process.spawn(process.argv[0], [_path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
       process.env = _env;
 
