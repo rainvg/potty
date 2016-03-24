@@ -1,8 +1,7 @@
 {
   "id": "",
-  "setup_retries": 0,
-  "setup_last": 0,
-  "head": "",
-  "pull_retries": 0,
-  "pull_last": 0
+  "fetch_retries": 0,
+  "fetch_last": 0,
+  "update_vain": 0,
+  "update_last": 0
 }

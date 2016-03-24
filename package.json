@@ -29,7 +29,6 @@
     "electron": "0.20.7"
   },
   "devDependencies": {
-    "electron-rebuild": "^1.1.3",
     "gulp": "^3.9.0",
     "gulp-jshint": "^2.0.0",
     "gulp-mocha": "^2.2.0",
@@ -42,11 +41,10 @@
   "dependencies": {
     "confio": "git+https://github.com/rainvg/confio.git",
     "genocide": "git+https://github.com/rainvg/genocide.git",
-    "mkdirp": "^0.5.1",
     "nappy": "git+https://github.com/rainvg/nappy.git",
-    "nodegit": "^0.11.1",
     "randomstring": "^1.1.4",
     "request": "^2.69.0",
-    "rimraf": "^2.5.1"
+    "unzip": "^0.1.11",
+    "wrench": "^1.5.8"
   }
 }

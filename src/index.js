@@ -1,22 +1,23 @@
 var nappy = require('nappy');
-var nodegit = require('nodegit');
-var rimraf = require('rimraf');
-var mkdirp = require('mkdirp');
+var wrench = require('wrench');
 var confio = require('confio');
 var path = require('path');
+var request = require('request');
 var child_process = require('child_process');
 var randomstring = require('randomstring');
 var genocide = require('genocide');
+var fs = require('fs');
+var unzip = require('unzip');
 
-var version = require('../package.json').version;
+var version = require(path.resolve(__dirname, '..', 'package.json')).version;
 
-function pot(root, repository, branch, options)
+function pot(root, remote, options)
 {
   'use strict';
 
   // Settings
 
-  var settings = {id: {length: 16}, path_setup: {retry: 1000}, setup: {retry: {min: 1000, max: 604800000}}, pull: {retries: 5}, update: {ignore: {min: 1000, max: 604800000}}, start: {autoupdate: {threshold: 604800000}, keepalive: {interval: 500, margin: 10, sleep_threshold: 5000}, sentence: 2000, log: {max_length: 1048576}}};
+  var settings = {id: {length: 16}, path_setup: {retry: 1000}, remote_version: {retry: 1000}, fetch: {retry: {min: 1000, max: 604800000}, tmp_file_length: 16}, update: {retry: {min: 1000, max: 604800000}}, start: {autoupdate: {threshold: 604800000}, keepalive: {interval: 500, margin: 10, sleep_threshold: 5000}, sentence: 2000, log: {max_length: 1048576}}};
 
   if(!(this instanceof pot))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
@@ -26,11 +27,10 @@ function pot(root, repository, branch, options)
   // Constructor
 
   var _path = {root: root, app: path.resolve(root, 'app'), resources: path.resolve(root, 'resources')};
-  var _repository = repository;
-  var _branch = {local: branch, remote: 'origin/' + branch};
+  var _remote = remote;
   var _options = options || {};
 
-  var _config = new confio.confio(_path.root + '/potty.json', __dirname + '/../config/pot.json');
+  var _config = new confio.confio(path.resolve(_path.root, 'potty.json'), path.resolve(__dirname, '..', 'config', 'pot.json'));
   var _events = {start: function(){}, data: function(){}, message: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
   var _handles = {message: function(){}, bury: function(){}};
 
@@ -48,23 +48,16 @@ function pot(root, repository, branch, options)
     resources: function()
     {
       return _path.resources;
-    }
-  };
-
-  self.repository = function()
-  {
-    return _repository;
-  };
-
-  self.branch = {
-    local: function()
-    {
-      return _branch.local;
     },
-    remote: function()
+    distro: function()
     {
-      return _branch.remote;
+      return _path.distro;
     }
+  };
+
+  self.remote = function()
+  {
+    return _remote;
   };
 
   self.id = function()
@@ -106,20 +99,76 @@ function pot(root, repository, branch, options)
 
   var __setup_path__ = function()
   {
-    var __setup_try__ = function(path)
+    return new Promise(function(resolve)
+    {
+      (function loop()
+      {
+        try
+        {
+          for(var p in _path)
+            wrench.mkdirSyncRecursive(_path[p]);
+
+          resolve();
+        }
+        catch(error)
+        {
+          nappy.wait.for(settings.path_setup.retry).then(loop);
+        }
+      })();
+    });
+  };
+
+  var __fetch__ = function()
+  {
+    var __download_try__ = function()
     {
       return new Promise(function(resolve, reject)
       {
-        rimraf(path, function()
+        nappy.wait.connection().then(function()
         {
-          mkdirp(path, function(error)
+          request(_remote + '?id=' + self.id(), function(error, response, body)
           {
-            if(error)
+            if(error || response.statusCode !== 200)
               reject(error);
-            else
-              resolve();
+
+            try
+            {
+              var pkg = JSON.parse(body);
+
+              pkg.tmp = {};
+
+              pkg.tmp.path = path.resolve(process.env.TMPDIR, randomstring.generate(settings.fetch.tmp_file_length));
+              pkg.tmp.handle = fs.createWriteStream(pkg.tmp.path);
+
+              request(pkg.latest.url).on('response', function(response)
+              {
+                pkg.tmp.response = response;
+              }).on('error', reject).on('complete', function()
+              {
+                if(pkg.tmp.response.statusCode !== 200)
+                  reject(pkg.tmp.response);
+                else
+                  resolve(pkg.tmp.path);
+              }).pipe(pkg.tmp.handle);
+            } catch(error) {reject(error);}
           });
         });
+      });
+    };
+
+    var __unzip_try__ = function(path)
+    {
+      return new Promise(function(resolve, reject)
+      {
+        try
+        {
+          wrench.rmdirSyncRecursive(_path.app);
+          fs.createReadStream(path).pipe(unzip.Extract({path: _path.app})).on('finish', resolve).on('error', reject);
+        }
+        catch(error)
+        {
+          reject();
+        }
       });
     };
 
@@ -127,143 +176,118 @@ function pot(root, repository, branch, options)
     {
       (function loop()
       {
-        __setup_try__(_path.app).then(function()
+        __setup_path__().then(function()
         {
-          return __setup_try__(_path.resources);
-        }).then(resolve).catch(function()
-        {
-          nappy.wait.for(settings.path_setup.retry).then(loop);
-        });
-      })();
-    });
-  };
-
-  var __setup__ = function()
-  {
-    var __setup_try__ = function()
-    {
-      return nappy.wait.connection().then(function()
-      {
-        return nodegit.Clone(_repository, _path.app, {checkoutBranch: _branch.local});
-      });
-    };
-
-    return __setup_path__().then(function()
-    {
-      return new Promise(function(resolve)
-      {
-        nappy.wait.till(_config.get('setup_last') + Math.min(Math.pow(2, _config.get('setup_retries')) * settings.setup.retry.min, settings.setup.retry.max)).then(function()
+          return nappy.wait.till(_config.get('fetch_last') + Math.min(Math.pow(2, _config.get('fetch_retries')) * settings.fetch.retry.min, settings.fetch.retry.max));
+        }).then(function()
         {
           try
           {
-            _config.set('setup_last', new Date().getTime());
+            _config.set('fetch_last', new Date().getTime());
+          } catch(error) {}
+        }).then(__download_try__).then(__unzip_try__).then(function()
+        {
+          try
+          {
+            _config.set('fetch_retries', 0);
           } catch(error) {}
 
-          __setup_try__().then(function()
+          resolve();
+        }).catch(function()
+        {
+          try
           {
-            try
-            {
-              _config.set('setup_retries', 0);
-            } catch(error) {}
-            resolve();
-          }).catch(function()
-          {
-            try
-            {
-              _config.set('setup_retries', _config.get('setup_retries') + 1);
-            } catch(error) {}
-            __setup__().then(resolve);
-          });
+            _config.set('fetch_retries', _config.get('fetch_retries') + 1);
+          } catch(error) {}
+
+          loop();
         });
-      });
+      })();
     });
   };
 
-  var __pull__ = function()
+  var __app_version__ = function()
   {
-    var __pull_try__ = function()
+    try
     {
-      return nappy.wait.connection().then(function()
+      return require(path.resolve(_path.app, 'package.json')).version;
+    } catch(error)
+    {
+      return '';
+    }
+  };
+
+  var __remote_version__ = function()
+  {
+    var __version_try__ = function()
+    {
+      return new Promise(function(resolve, reject)
       {
-        return nodegit.Repository.open(_path.app);
-      }).then(function(repository)
-      {
-        return repository.fetch('origin').then(function()
+        request(_remote + '?id=' + self.id(), function(error, response, body)
         {
-          return repository.mergeBranches(_branch.local, _branch.remote);
+          if(error || response.statusCode !== 200)
+            reject(error);
+
+          try
+          {
+            var pkg = JSON.parse(body);
+            resolve(pkg.version);
+          } catch(error)
+          {
+            reject(error);
+          }
         });
       });
     };
 
     return new Promise(function(resolve)
     {
-      var retries = 0;
-
       (function loop()
       {
-        if(retries < settings.pull.retries)
-          __pull_try__().then(resolve).catch(function()
-          {
-            retries++;
-            loop();
-          });
-        else
-          __setup__().then(resolve);
+        __version_try__().then(resolve).catch(function()
+        {
+          nappy.wait.for(settings.remote_version.retry).then(loop);
+        });
       })();
-    }).then(function()
-    {
-      return nodegit.Repository.open(_path.app);
-    }).then(function(repository)
-    {
-      return repository.getBranchCommit(_branch.local);
-    }).then(function(commit)
-    {
-      var updated = _config.get('head') !== commit.id().toString();
-
-      try
-      {
-        _config.set('head', commit.id().toString());
-      } catch(error) {}
-
-      return Promise.resolve(updated);
-    });
-  };
-
-  var __stash__ = function()
-  {
-    return new Promise(function(resolve)
-    {
-      nodegit.Repository.open(_path.app).then(function(repository)
-      {
-        return nodegit.Checkout.head(repository, {checkoutStrategy: nodegit.Checkout.STRATEGY.FORCE});
-      }).then(resolve).catch(resolve);
     });
   };
 
   var __update__ = function(force)
   {
-    return __stash__().then(function()
+    return new Promise(function(resolve)
     {
-      if(!force && new Date().getTime() < _config.get('pull_last') + Math.min(Math.pow(2, _config.get('pull_retries')) * settings.update.ignore.min, settings.update.ignore.max))
-        return Promise.resolve();
-      else
-        return __pull__().then(function(updated)
+      if(!force && new Date().getTime() < _config.get('update_last') + Math.min(Math.pow(2, _config.get('update_vain')) * settings.update.retry.min, settings.update.retry.max))
+      {
+        resolve();
+        return;
+      }
+
+      try
+      {
+        _config.set('update_last', new Date().getTime());
+      } catch(error) {}
+
+      __remote_version__().then(function(remote_version)
+      {
+        if(remote_version === __app_version__())
         {
           try
           {
-            if(updated)
-            {
-              _config.set('pull_retries', 0);
-              _events.update();
-            }
-            else
-              _config.set('pull_retries', _config.get('pull_retries') + 1);
-
-            _config.set('pull_last', new Date().getTime());
+            _config.set('update_vain', _config.get('update_vain') + 1);
           } catch(error) {}
 
-          return updated;
-        });
+          resolve();
+        }
+        else
+        {
+          try
+          {
+            _config.set('update_vain', 0);
+          } catch(error) {}
+
+          __fetch__().then(resolve);
+        }
+      });
     });
   };
 
