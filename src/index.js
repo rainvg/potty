@@ -136,7 +136,7 @@ function pot(root, remote, options)
 
               pkg.tmp = {};
 
-              pkg.tmp.path = path.resolve(process.env.TMPDIR, randomstring.generate(settings.fetch.tmp_file_length));
+              pkg.tmp.path = path.resolve(process.env.TMPDIR || process.env.TMP, randomstring.generate(settings.fetch.tmp_file_length));
               pkg.tmp.handle = fs.createWriteStream(pkg.tmp.path);
 
               request(pkg.latest.url).on('response', function(response)
