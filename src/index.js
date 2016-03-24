@@ -435,10 +435,7 @@ function pot(root, remote, options)
       };
     }
 
-    if(new Date().getTime() - _config.get('pull_last') >= settings.start.autoupdate.threshold)
-      __update__(true).then(loop);
-    else
-      loop();
+    __update__().then(loop);
   };
 }
 
