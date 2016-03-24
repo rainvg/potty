@@ -102,10 +102,7 @@ function pot(root, remote, options)
         try
         {
           for(var p in _path)
-          {
-            console.log('Setting up', p, ' -> ', _path[p]);
             wrench.mkdirSyncRecursive(_path[p]);
-          }
 
           resolve();
         }
@@ -253,8 +250,6 @@ function pot(root, remote, options)
 
   var __update__ = function(force)
   {
-    console.log('Updating');
-
     return new Promise(function(resolve)
     {
       if(!force && new Date().getTime() < _config.get('update_last') + Math.min(Math.pow(2, _config.get('update_vain')) * settings.update.retry.min, settings.update.retry.max))
