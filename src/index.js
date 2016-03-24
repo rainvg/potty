@@ -114,6 +114,22 @@ function pot(root, remote, options)
     });
   };
 
+  var __unzip_try__ = function(path)
+  {
+    return new Promise(function(resolve, reject)
+    {
+      try
+      {
+        wrench.rmdirSyncRecursive(_path.app);
+        fs.createReadStream(path).pipe(unzip.Extract({path: _path.app})).on('finish', resolve).on('error', reject);
+      }
+      catch(error)
+      {
+        reject();
+      }
+    });
+  };
+
   var __fetch__ = function()
   {
     var __download_try__ = function()
@@ -149,22 +165,6 @@ function pot(root, remote, options)
             } catch(error) {reject(error);}
           });
         });
-      });
-    };
-
-    var __unzip_try__ = function(path)
-    {
-      return new Promise(function(resolve, reject)
-      {
-        try
-        {
-          wrench.rmdirSyncRecursive(_path.app);
-          fs.createReadStream(path).pipe(unzip.Extract({path: _path.app})).on('finish', resolve).on('error', reject);
-        }
-        catch(error)
-        {
-          reject();
-        }
       });
     };
 
@@ -254,7 +254,7 @@ function pot(root, remote, options)
     {
       if(!force && new Date().getTime() < _config.get('update_last') + Math.min(Math.pow(2, _config.get('update_vain')) * settings.update.retry.min, settings.update.retry.max))
       {
-        resolve();
+        resolve(false);
         return;
       }
 
@@ -272,7 +272,7 @@ function pot(root, remote, options)
             _config.set('update_vain', _config.get('update_vain') + 1);
           } catch(error) {}
 
-          resolve();
+          resolve(false);
         }
         else
         {
@@ -281,8 +281,25 @@ function pot(root, remote, options)
             _config.set('update_vain', 0);
           } catch(error) {}
 
-          __fetch__().then(resolve);
+          __fetch__().then(function()
+          {
+            resolve(true);
+          });
         }
+      });
+    });
+  };
+
+  var __install__ = function(path)
+  {
+    return new Promise(function(resolve)
+    {
+      __unzip_try__(path).then(function()
+      {
+        resolve(true);
+      }).catch(function()
+      {
+        __update__(true).then(resolve);
       });
     });
   };
@@ -310,6 +327,7 @@ function pot(root, remote, options)
       process.env = _env;
 
       var will = null;
+      var meta = null;
 
       var log = {stdout: '', stderr: ''};
 
@@ -368,6 +386,16 @@ function pot(root, remote, options)
 
                 loop();
               });
+          },
+          install: function()
+          {
+            __install__(meta.path).then(function(updated)
+            {
+              if(!updated)
+                _events.reboot();
+
+              loop();
+            });
           }
         }[will])();
       };
@@ -400,9 +428,11 @@ function pot(root, remote, options)
 
           keepalive.alarm.reset();
         }
-        else if(message.cmd === 'shutdown' || message.cmd === 'reboot' || message.cmd === 'update')
+        else if(message.cmd === 'shutdown' || message.cmd === 'reboot' || message.cmd === 'update' || message.cmd === 'install')
         {
           will = message.cmd;
+          meta = message.meta;
+
           child.send({cmd: 'goodnight'});
 
           nappy.wait.for(settings.start.sentence).then(function()
@@ -522,6 +552,28 @@ var app = {
       nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
 
       process.send({cmd: 'update'});
+
+      process.on('message', function(message)
+      {
+        if(message.cmd === 'goodnight')
+          resolve();
+      });
+    });
+  },
+  install: function(path)
+  {
+    'use strict';
+
+    return new Promise(function(resolve)
+    {
+      try
+      {
+        app.keepalive.alarm.abort();
+      } catch(error) {}
+
+      nappy.wait.for(app.settings.sentence).then(genocide.seppuku);
+
+      process.send({cmd: 'install', meta: {path: path}});
 
       process.on('message', function(message)
       {
