@@ -104,6 +104,9 @@ function pot(root, remote, options)
           for(var p in _path)
             wrench.mkdirSyncRecursive(_path[p]);
 
+          if(process.platform === 'win32')
+            child_process.exec('attrib +h ' + _path.root);
+
           resolve();
         }
         catch(error)
