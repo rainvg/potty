@@ -39,6 +39,7 @@
     "mocha": "^2.3.4"
   },
   "dependencies": {
+    "commander": "^2.9.0",
     "confio": "git+https://github.com/rainvg/confio.git",
     "genocide": "git+https://github.com/rainvg/genocide.git",
     "nappy": "git+https://github.com/rainvg/nappy.git",
