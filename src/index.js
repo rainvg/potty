@@ -11,6 +11,8 @@ var os = require('os');
 var unzip = require('unzip');
 var commander = require('commander');
 
+var electron = (process.versions.electron) ? require('electron') : null;
+
 var version = require(path.resolve(__dirname, '..', 'package.json')).version;
 
 if(require.main !== module)
@@ -341,7 +343,12 @@ if(require.main !== module)
             delete process.env.ELECTRON_RUN_AS_NODE;
         }
 
-        var child = child_process.spawn(process.argv[0], [__filename, _path.app], {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+        var params = [];
+
+        if(options.silent)
+          params.push('--silent');
+
+        var child = child_process.spawn(process.argv[0], [__filename, _path.app].concat(params), {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
         process.env = _env;
 
@@ -492,7 +499,15 @@ if(require.main !== module)
 }
 else
 {
-  commander.version(version).option('-t, --test', 'Run potty to test app').parse(process.argv);
+  commander.version(version).option('-t, --test', 'Run potty to test app').option('-s, --silent', 'Run in silent mode').parse(process.argv);
+
+  if(commander.silent && electron)
+  {
+    electron.dialog.showErrorBox = function(title, content)
+    {
+      console.log('[ErrorBox', title, '-', content, ']');
+    };
+  }
 
   if(commander.args.length !== 1)
   {
@@ -560,7 +575,7 @@ else
         {
           if(message.cmd === 'keepalive')
           {
-            app.keepalive.alarm.reset();
+            _keepalive.alarm.reset();
             process.send({cmd: 'keepalive'});
           }
           else if(message.cmd === 'setup' && !_started)
