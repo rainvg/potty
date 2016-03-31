@@ -499,183 +499,185 @@ if(require.main !== module)
 }
 else
 {
-  commander.version(version).option('-t, --test', 'Run potty to test app').option('-s, --silent', 'Run in silent mode').parse(process.argv);
-
-  if(commander.silent && electron)
+  var __run__ = function()
   {
-    electron.dialog.showErrorBox = function(title, content)
+    'use strict';
+
+    commander.version(version).option('-t, --test', 'Run potty to test app').option('-s, --silent', 'Run in silent mode').parse(process.argv);
+
+    if(commander.silent && electron)
     {
-      console.log('[ErrorBox', title, '-', content, ']');
-    };
-  }
-
-  if(commander.args.length !== 1)
-  {
-    console.log('App path required.');
-    genocide.seppuku();
-  }
-  else
-  {
-    try
-    {
-      var app = require(commander.args[0]);
-
-      if(typeof app !== 'function')
-        throw {code: 3, description: 'App is not a function.', url: ''};
-
-      if(commander.test)
+      electron.dialog.showErrorBox = function(title, content)
       {
-        app({
-          id: '[test]',
-          version: version,
-          shutdown: function()
-          {
-            console.log('Shutdown requested.');
-            return Promise.resolve();
-          },
-          reboot: function()
-          {
-            console.log('Reboot requested.');
-            return Promise.resolve();
-          },
-          update: function()
-          {
-            console.log('Update requested.');
-            return Promise.resolve();
-          },
-          install: function(path)
-          {
-            console.log('Install requested for', path);
-            return Promise.resolve();
-          },
-          message: function(message)
-          {
-            console.log('Message dispatched:', message);
-          },
-          on: function(event)
-          {
-            if(!(event in _events))
-              throw {code: 2, description: 'Event does not exist.', url: ''};
+        console.log('[ErrorBox', title, '-', content, ']');
+      };
+    }
 
-            console.log('Subscribed to', event, '(will never be fired).');
-          }
-        });
-      }
-      else
-      {
-        var settings = {keepalive: {interval: 500, margin: 10, sleep_threshold: 5000}, sentence: 2000};
-
-        var _events = {message: function(){}};
-        var _keepalive = {alarm: new nappy.alarm(settings.keepalive.margin * settings.keepalive.interval, {sleep_threshold: settings.keepalive.sleep_threshold})};
-        var _started = false;
-
-        _keepalive.alarm.then(genocide.seppuku);
-
-        process.on('message', function(message)
-        {
-          if(message.cmd === 'keepalive')
-          {
-            _keepalive.alarm.reset();
-            process.send({cmd: 'keepalive'});
-          }
-          else if(message.cmd === 'setup' && !_started)
-          {
-            _started = true;
-
-            var __sentence__ = function()
-            {
-              try
-              {
-                _keepalive.alarm.abort();
-              } catch(error) {}
-
-              nappy.wait.for(settings.sentence).then(genocide.seppuku);
-            };
-
-            app({
-              id: message.id,
-              version: version,
-              shutdown: function()
-              {
-                'use strict';
-
-                return new Promise(function(resolve)
-                {
-                  __sentence__();
-                  process.send({cmd: 'shutdown'});
-                  process.on('message', function(message)
-                  {
-                    if(message.cmd === 'goodnight')
-                      resolve();
-                  });
-                });
-              },
-              reboot: function()
-              {
-                'use strict';
-
-                return new Promise(function(resolve)
-                {
-                  __sentence__();
-                  process.send({cmd: 'reboot'});
-                  process.on('message', function(message)
-                  {
-                    if(message.cmd === 'goodnight')
-                      resolve();
-                  });
-                });
-              },
-              update: function()
-              {
-                'use strict';
-
-                return new Promise(function(resolve)
-                {
-                  __sentence__();
-                  process.send({cmd: 'update'});
-                  process.on('message', function(message)
-                  {
-                    if(message.cmd === 'goodnight')
-                      resolve();
-                  });
-                });
-              },
-              install: function(path)
-              {
-                'use strict';
-
-                return new Promise(function(resolve)
-                {
-                  __sentence__();
-                  process.send({cmd: 'install', meta: {path: path}});
-                  process.on('message', function(message)
-                  {
-                    if(message.cmd === 'goodnight')
-                      resolve();
-                  });
-                });
-              },
-              on: function(event, callback)
-              {
-                if(!(event in _events))
-                  throw {code: 2, description: 'Event does not exist.', url: ''};
-
-                  _events[event] = callback;
-              },
-              message: function(message)
-              {
-                process.send({cmd: 'message', message: message});
-              }
-            });
-          }
-          else if(message.cmd === 'message')
-            _events.message(message.message);
-        });
-      }
-    } catch(error)
+    if(commander.args.length !== 1)
     {
-      console.log('Exiting with error', error);
+      console.log('App path required.');
       genocide.seppuku();
     }
-  }
+    else
+    {
+      try
+      {
+        var app = require(commander.args[0]);
+
+        if(typeof app !== 'function')
+          throw {code: 3, description: 'App is not a function.', url: ''};
+
+        if(commander.test)
+        {
+          app({
+            id: '[test]',
+            version: version,
+            shutdown: function()
+            {
+              console.log('Shutdown requested.');
+              return Promise.resolve();
+            },
+            reboot: function()
+            {
+              console.log('Reboot requested.');
+              return Promise.resolve();
+            },
+            update: function()
+            {
+              console.log('Update requested.');
+              return Promise.resolve();
+            },
+            install: function(path)
+            {
+              console.log('Install requested for', path);
+              return Promise.resolve();
+            },
+            message: function(message)
+            {
+              console.log('Message dispatched:', message);
+            },
+            on: function(event)
+            {
+              if(!(event in _events))
+                throw {code: 2, description: 'Event does not exist.', url: ''};
+
+              console.log('Subscribed to', event, '(will never be fired).');
+            }
+          });
+        }
+        else
+        {
+          var settings = {keepalive: {interval: 500, margin: 10, sleep_threshold: 5000}, sentence: 2000};
+
+          var _events = {message: function(){}};
+          var _keepalive = {alarm: new nappy.alarm(settings.keepalive.margin * settings.keepalive.interval, {sleep_threshold: settings.keepalive.sleep_threshold})};
+          var _started = false;
+
+          _keepalive.alarm.then(genocide.seppuku);
+
+          process.on('message', function(message)
+          {
+            if(message.cmd === 'keepalive')
+            {
+              _keepalive.alarm.reset();
+              process.send({cmd: 'keepalive'});
+            }
+            else if(message.cmd === 'setup' && !_started)
+            {
+              _started = true;
+
+              var __sentence__ = function()
+              {
+                try
+                {
+                  _keepalive.alarm.abort();
+                } catch(error) {}
+
+                nappy.wait.for(settings.sentence).then(genocide.seppuku);
+              };
+
+              app({
+                id: message.id,
+                version: version,
+                shutdown: function()
+                {
+                  return new Promise(function(resolve)
+                  {
+                    __sentence__();
+                    process.send({cmd: 'shutdown'});
+                    process.on('message', function(message)
+                    {
+                      if(message.cmd === 'goodnight')
+                        resolve();
+                    });
+                  });
+                },
+                reboot: function()
+                {
+                  return new Promise(function(resolve)
+                  {
+                    __sentence__();
+                    process.send({cmd: 'reboot'});
+                    process.on('message', function(message)
+                    {
+                      if(message.cmd === 'goodnight')
+                        resolve();
+                    });
+                  });
+                },
+                update: function()
+                {
+                  return new Promise(function(resolve)
+                  {
+                    __sentence__();
+                    process.send({cmd: 'update'});
+                    process.on('message', function(message)
+                    {
+                      if(message.cmd === 'goodnight')
+                        resolve();
+                    });
+                  });
+                },
+                install: function(path)
+                {
+                  return new Promise(function(resolve)
+                  {
+                    __sentence__();
+                    process.send({cmd: 'install', meta: {path: path}});
+                    process.on('message', function(message)
+                    {
+                      if(message.cmd === 'goodnight')
+                        resolve();
+                    });
+                  });
+                },
+                on: function(event, callback)
+                {
+                  if(!(event in _events))
+                    throw {code: 2, description: 'Event does not exist.', url: ''};
+
+                    _events[event] = callback;
+                },
+                message: function(message)
+                {
+                  process.send({cmd: 'message', message: message});
+                }
+              });
+            }
+            else if(message.cmd === 'message')
+              _events.message(message.message);
+          });
+        }
+      } catch(error)
+      {
+        console.log('Exiting with error', error);
+        genocide.seppuku();
+      }
+    }
+  };
+
+  if(electron)
+    electron.app.on('ready', __run__);
+  else
+    __run__();
 }
