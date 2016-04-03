@@ -38,6 +38,8 @@ if(require.main !== module)
     var _options = options || {};
     var __log__ = _options.log ? _options.log : function(){};
 
+    __log__('Potty booting.');
+
     var _config = new confio.confio(path.resolve(_path.root, 'potty.json'), path.resolve(__dirname, '..', 'config', 'pot.json'));
     var _events = {start: function(){}, data: function(){}, message: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
     var _handles = {message: function(){}, bury: function(){}};
