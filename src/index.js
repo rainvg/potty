@@ -34,7 +34,9 @@ if(require.main !== module)
 
     var _path = {root: root, app: path.resolve(root, 'app'), resources: path.resolve(root, 'resources')};
     var _remote = remote;
+
     var _options = options || {};
+    var __log__ = _options.log ? _options.log : function(){};
 
     var _config = new confio.confio(path.resolve(_path.root, 'potty.json'), path.resolve(__dirname, '..', 'config', 'pot.json'));
     var _events = {start: function(){}, data: function(){}, message: function(){}, error: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}};
@@ -89,11 +91,13 @@ if(require.main !== module)
 
     self.message = function(message)
     {
+      __log__('Sending', message, 'to the app.');
       _handles.message(message);
     };
 
     self.bury = function()
     {
+      __log__('Burying the app upon request.');
       _handles.bury();
     };
 
@@ -101,20 +105,28 @@ if(require.main !== module)
 
     var __online__ = function()
     {
+      __log__('Checking online status.');
       return new Promise(function(resolve)
       {
         needle.get('https://api.ipify.org', function(error, response)
         {
           if(!error && response.statusCode === 200 && /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$|^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$/.test(response.body))
+          {
+            __log__('App online.');
             resolve(true);
+          }
           else
+          {
+            __log__('App offline');
             resolve(false);
+          }
         });
       });
     };
 
     var __setup_path__ = function()
     {
+      __log__('Setting up path.');
       return new Promise(function(resolve)
       {
         (function loop()
@@ -127,10 +139,12 @@ if(require.main !== module)
             if(process.platform === 'win32')
               child_process.exec('attrib +h ' + _path.root);
 
+              __log__('Path set up.');
             resolve();
           }
           catch(error)
           {
+            __log__('Error setting up path:', error, '(waiting and retrying).');
             nappy.wait.for(settings.path_setup.retry).then(loop);
           }
         })();
@@ -139,15 +153,25 @@ if(require.main !== module)
 
     var __unzip_try__ = function(path)
     {
+      __log__('Trying to unzip.');
       return new Promise(function(resolve, reject)
       {
         try
         {
           wrench.rmdirSyncRecursive(_path.app);
-          fs.createReadStream(path).pipe(unzip.Extract({path: _path.app})).on('finish', resolve).on('error', reject);
+          fs.createReadStream(path).pipe(unzip.Extract({path: _path.app})).on('finish', function()
+          {
+            __log__('Unzip succeeded.');
+            resolve();
+          }).on('error', function(error)
+          {
+            __log__('Error unzipping:', error);
+            reject();
+          });
         }
         catch(error)
         {
+          __log__('Error unzipping:', error);
           reject();
         }
       });
@@ -155,31 +179,49 @@ if(require.main !== module)
 
     var __fetch__ = function()
     {
+      __log__('Fetching latest release.');
+
       var __download_try__ = function()
       {
+        __log__('Attempting download.');
         return new Promise(function(resolve, reject)
         {
           nappy.wait.connection().then(function()
           {
+            __log__('Connection available. Fetching package info.');
             needle.get(_remote + '?id=' + self.id(), function(error, response)
             {
               if(error || response.statusCode !== 200)
+              {
+                __log__('Error fetching package info:', error || response.statusCode);
                 reject(error);
+              }
 
               try
               {
+                __log__('Package info successfully fetched.');
                 var pkg = JSON.parse(response.body);
 
                 pkg.tmp = {path: path.resolve(os.tmpdir(), randomstring.generate(settings.fetch.tmp_file_length))};
 
+                __log__('Downloading', pkg.latest.url, 'to', pkg.tmp.path);
+
                 needle.get(pkg.latest.url, {output: pkg.tmp.path}, function(error, response)
                 {
                   if(error || response.statusCode !== 200)
+                  {
+                    __log__('Error downloading:', error || response.statusCode);
                     reject(error);
+                  }
 
+                  __log__('Download successful.');
                   resolve(pkg.tmp.path);
                 });
-              } catch(error) {reject(error);}
+              } catch(error)
+              {
+                __log__('Error parsing package info:', error);
+                reject(error);
+              }
             });
           });
         });
@@ -191,6 +233,7 @@ if(require.main !== module)
         {
           __setup_path__().then(function()
           {
+            __log__('Waiting for next fetch retry');
             return nappy.wait.till(_config.get('fetch_last') + Math.min(Math.pow(2, _config.get('fetch_retries')) * settings.fetch.retry.min, settings.fetch.retry.max));
           }).then(function()
           {
@@ -205,9 +248,11 @@ if(require.main !== module)
               _config.set('fetch_retries', 0);
             } catch(error) {}
 
+            __log__('Fetch successful.');
             resolve();
           }).catch(function()
           {
+            __log__('Fetch failed. Retrying.');
             try
             {
               _config.set('fetch_retries', _config.get('fetch_retries') + 1);
@@ -221,32 +266,45 @@ if(require.main !== module)
 
     var __app_version__ = function()
     {
+      __log__('Fetching app version.');
       try
       {
-        return require(path.resolve(_path.app, 'package.json')).version;
+        var version = require(path.resolve(_path.app, 'package.json')).version;
+        __log__('App version is', version);
+        return version;
       } catch(error)
       {
+        __log__('No version found, returning \'\'');
         return '';
       }
     };
 
     var __remote_version__ = function()
     {
+      __log__('Fetching remote version.');
+
       var __version_try__ = function()
       {
+        __log__('Trying to fetch remote version.');
+
         return new Promise(function(resolve, reject)
         {
           needle.get(_remote + '?id=' + self.id(), function(error, response)
           {
             if(error || response.statusCode !== 200)
+            {
+              __log__('Error fetching remote version:', error || response.statusCode);
               reject(error);
+            }
 
             try
             {
               var pkg = JSON.parse(response.body);
+              __log__('Remote version is', pkg.version);
               resolve(pkg.version);
             } catch(error)
             {
+              __log__('Error parsing package info:', error);
               reject(error);
             }
           });
@@ -259,6 +317,7 @@ if(require.main !== module)
         {
           __version_try__().then(resolve).catch(function()
           {
+            __log__('Failed fetching remote version. Retrying.');
             nappy.wait.for(settings.remote_version.retry).then(loop);
           });
         })();
@@ -267,10 +326,13 @@ if(require.main !== module)
 
     var __update__ = function(force)
     {
+      __log__(force ? 'Updating forcefully.' : 'Updating.');
+
       return new Promise(function(resolve)
       {
         if(!force && new Date().getTime() < _config.get('update_last') + Math.min(Math.pow(2, _config.get('update_vain')) * settings.update.retry.min, settings.update.retry.max))
         {
+          __log__('Last update too recent. Resolving.');
           resolve(false);
           return;
         }
@@ -284,6 +346,7 @@ if(require.main !== module)
         {
           if(remote_version === __app_version__())
           {
+            __log__('Remote version and app version are the same.');
             try
             {
               _config.set('update_vain', _config.get('update_vain') + 1);
@@ -293,6 +356,7 @@ if(require.main !== module)
           }
           else
           {
+            __log__('Remote version is different from app version. Fetching.');
             try
             {
               _config.set('update_vain', 0);
@@ -300,6 +364,7 @@ if(require.main !== module)
 
             __fetch__().then(function()
             {
+              __log__('Update completed.');
               resolve(true);
             });
           }
@@ -309,13 +374,17 @@ if(require.main !== module)
 
     var __install__ = function(path)
     {
+      __log__('Installing', path);
+
       return new Promise(function(resolve)
       {
         __unzip_try__(path).then(function()
         {
+          __log__('Installed successfully.');
           resolve(true);
         }).catch(function()
         {
+          __log__('Installation failed. Updating.');
           __update__(true).then(resolve);
         });
       });
@@ -325,8 +394,12 @@ if(require.main !== module)
 
     self.start = function()
     {
+      __log__('Start called.');
+
       function loop()
       {
+        __log__('Setting environment variables and params.');
+
         var _env = process.env;
 
         if('ELECTRON_RUN_AS_NODE' in _options)
@@ -342,6 +415,8 @@ if(require.main !== module)
         if(options.silent)
           params.push('--silent');
 
+        __log__('Spawning app.');
+
         var child = child_process.spawn(process.argv[0], [__filename, _path.app].concat(params), {cwd: _path.resources, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
         process.env = _env;
@@ -353,6 +428,9 @@ if(require.main !== module)
 
         child.stdout.on('data', function(data)
         {
+          __log__('Data received from app:');
+          __log__('{', data, '}');
+
           _events.data(data);
 
           log.stdout += data;
@@ -362,6 +440,9 @@ if(require.main !== module)
 
         child.stderr.on('data', function(data)
         {
+          __log__('Error data received from app:');
+          __log__('{', data, '}');
+
           log.stderr += data;
           if(log.stderr.length > settings.start.log.max_length)
             log.stderr = log.stderr.slice(log.stderr.length - settings.start.log.max_length);
@@ -370,6 +451,8 @@ if(require.main !== module)
         var __bury__ = function(reason)
         {
           if(child.buried) return;
+
+          __log__('Burying app with reason', reason);
 
           _handles.message = function(){};
           _handles.bury = function(){};
@@ -383,22 +466,30 @@ if(require.main !== module)
 
           clearInterval(keepalive.interval);
 
+          __log__('Calling genocide on app.');
           genocide.genocide(child.pid);
 
           ({
             null: function()
             {
+              __log__('No will found. Updating.');
               _events.error({reason: reason, log: log});
               __update__().then(loop);
             },
-            shutdown: _events.shutdown,
+            shutdown: function()
+            {
+              __log__('Shutdown requested.');
+              _events.shutdown();
+            },
             reboot: function()
             {
+              __log__('Reboot requested.');
               _events.reboot();
               loop();
             },
             update: function()
             {
+              __log__('Update requested.');
               __update__(true).then(function(updated)
                 {
                   if(!updated)
@@ -409,6 +500,7 @@ if(require.main !== module)
             },
             install: function()
             {
+              __log__('Install requested on', meta.path);
               __install__(meta.path).then(function(updated)
               {
                 if(!updated)
@@ -432,6 +524,7 @@ if(require.main !== module)
 
         keepalive.alarm.then(function()
         {
+          __log__('Keepalive timeout. Calling genocide.');
           genocide.genocide(child.pid);
         });
 
@@ -450,6 +543,8 @@ if(require.main !== module)
           }
           else if(message.cmd === 'shutdown' || message.cmd === 'reboot' || message.cmd === 'update' || message.cmd === 'install')
           {
+            __log__('Received message:', message.cmd, 'requested');
+
             will = message.cmd;
             meta = message.meta;
 
@@ -459,6 +554,7 @@ if(require.main !== module)
             {
               if(!(child.buried))
               {
+                __log__('Child still alive. Sentencing it.');
                 will = null;
                 genocide.genocide(child.pid);
               }
@@ -466,6 +562,7 @@ if(require.main !== module)
           }
           else if(message.cmd === 'message')
           {
+            __log__('Received message:', message.message);
             _events.message(message.message);
           }
         });
@@ -484,7 +581,10 @@ if(require.main !== module)
       __online__().then(function(online)
       {
         if(online)
+        {
+          __log__('App online. Doing on-boot update.');
           __update__().then(loop);
+        }
         else
           loop();
       });
