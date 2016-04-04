@@ -432,7 +432,8 @@ if(require.main !== module)
         {
           data.toString('utf8').split(/\r?\n/).forEach(function(line)
           {
-            __log__('[app]', line);
+            if(line.length)
+              __log__('[app]', line);
           });
 
           _events.data(data);
@@ -444,8 +445,11 @@ if(require.main !== module)
 
         child.stderr.on('data', function(data)
         {
-          __log__('Error data received from app:');
-          __log__('{', data, '}');
+          data.toString('utf8').split(/\r?\n/).forEach(function(line)
+          {
+            if(line.length)
+              __log__('[app] [err]', line);
+          });
 
           log.stderr += data;
           if(log.stderr.length > settings.start.log.max_length)
