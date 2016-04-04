@@ -430,8 +430,10 @@ if(require.main !== module)
 
         child.stdout.on('data', function(data)
         {
-          __log__('Data received from app:');
-          __log__('{', data, '}');
+          data.toString('utf8').split(/\r?\n/).forEach(function(line)
+          {
+            __log__('[app]', line);
+          });
 
           _events.data(data);
 
