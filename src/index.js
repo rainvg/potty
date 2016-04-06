@@ -271,6 +271,7 @@ if(require.main !== module)
       __log__('Fetching app version.');
       try
       {
+        delete require.cache[require.resolve(path.resolve(_path.app, 'package.json'))];
         var version = require(path.resolve(_path.app, 'package.json')).version;
         __log__('App version is', version);
         return version;
