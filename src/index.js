@@ -547,7 +547,10 @@ if(require.main !== module)
               _events.start();
             }
 
-            keepalive.alarm.reset();
+            try
+            {
+              keepalive.alarm.reset();
+            } catch(error) {}
           }
           else if(message.cmd === 'shutdown' || message.cmd === 'reboot' || message.cmd === 'update' || message.cmd === 'install')
           {
@@ -681,7 +684,11 @@ else
           {
             if(message.cmd === 'keepalive')
             {
-              _keepalive.alarm.reset();
+              try
+              {
+                _keepalive.alarm.reset();
+              } catch(error) {}
+
               process.send({cmd: 'keepalive'});
             }
             else if(message.cmd === 'setup' && !_started)
