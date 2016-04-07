@@ -544,7 +544,7 @@ if(require.main !== module)
             if(!child.started)
             {
               child.started = true;
-              child.send({cmd: 'setup', id: self.id()});
+              child.send({cmd: 'setup', id: self.id(), version: _options.version || '0.0.0'});
               _events.start();
             }
 
@@ -708,7 +708,7 @@ else
 
               app({
                 id: message.id,
-                version: version,
+                version: {main: message.version, potty: version},
                 shutdown: function()
                 {
                   return new Promise(function(resolve)
