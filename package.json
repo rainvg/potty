@@ -1,6 +1,6 @@
 {
   "name": "potty",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "",
   "main": "dist/index.min.js",
   "scripts": {
