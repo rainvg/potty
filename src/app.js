@@ -79,10 +79,10 @@ module.exports = function potty_app(path, options)
 
       var _events = {message: function(){}, die: function(){}};
 
-      process.on('close', _events.die);
-      process.on('disconnect', _events.die);
-      process.on('error', _events.die);
-      process.on('exit', _events.die);
+      process.on('disconnect', function()
+      {
+        _events.die();
+      });
 
       self.on = function(event, callback)
       {
