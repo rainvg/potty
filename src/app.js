@@ -77,7 +77,20 @@ module.exports = function potty_app(path, options)
     {
       var settings = {keepalive: {interval: 500, margin: 10, sleep_threshold: 5000}, sentence: 2000};
 
-      var _events = {message: function(){}};
+      var _events = {message: function(){}, die: function(){}};
+
+      process.on('close', _events.die);
+      process.on('disconnect', _events.die);
+      process.on('error', _events.die);
+      process.on('exit', _events.die);
+
+      self.on = function(event, callback)
+      {
+        if(!(event in _events))
+          throw {code: 2, description: 'Event does not exist.', url: ''};
+
+        _events[event] = callback;
+      };
 
       self.start = function()
       {
