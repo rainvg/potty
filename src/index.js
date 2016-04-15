@@ -1,4 +1,4 @@
-var pot = require('./pot.js');
-var app = require('./app.js');
+var pot = require('./pot/index.js');
+var app = require('./app/index.js');
 
 module.exports = {pot: pot, app: app};

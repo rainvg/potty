@@ -38,12 +38,12 @@
   },
   "dependencies": {
     "confio": "git+https://github.com/rainvg/confio.git",
+    "fs-extra": "^0.27.0",
     "genocide": "git+https://github.com/rainvg/genocide.git",
     "nappy": "git+https://github.com/rainvg/nappy.git",
     "needle": "^1.0.0",
     "randomstring": "^1.1.4",
     "request": "^2.69.0",
-    "unzip": "^0.1.11",
-    "wrench": "^1.5.8"
+    "unzip": "^0.1.11"
   }
 }

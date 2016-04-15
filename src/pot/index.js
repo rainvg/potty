@@ -10,6 +10,8 @@ var fs = require('fs');
 var os = require('os');
 var unzip = require('unzip');
 
+// TODO: Change wrench with fs.extended?
+
 module.exports = function potty_pot(root, remote, command, options)
 {
   'use strict';
