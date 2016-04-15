@@ -1,6 +1,6 @@
 {
   "name": "potty",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "",
   "main": "dist/index.min.js",
   "scripts": {
@@ -30,16 +30,15 @@
     "gulp-jshint": "^2.0.0",
     "gulp-mocha": "^2.2.0",
     "gulp-rename": "^1.2.2",
+    "gulp-replace": "^0.5.4",
     "gulp-uglify": "^1.5.1",
     "jshint": "^2.9.1",
     "jshint-stylish": "^2.1.0",
     "mocha": "^2.3.4"
   },
   "dependencies": {
-    "commander": "^2.9.0",
     "confio": "git+https://github.com/rainvg/confio.git",
     "genocide": "git+https://github.com/rainvg/genocide.git",
-    "gulp-replace": "^0.5.4",
     "nappy": "git+https://github.com/rainvg/nappy.git",
     "needle": "^1.0.0",
     "randomstring": "^1.1.4",

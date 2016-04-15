@@ -11,6 +11,8 @@ module.exports = function potty_app(path, options)
   if(!(this instanceof potty_app))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
 
+  var self = this;
+
   var _path = path;
   var _options = options || {};
 
@@ -23,50 +25,53 @@ module.exports = function potty_app(path, options)
 
     if(_options.test)
     {
-      app({
-        id: '[test]',
-        version: version,
-        shutdown: function()
-        {
-          if(_options.test.shutdown)
-            _options.test.shutdown();
+      self.start = function()
+      {
+        app({
+          id: '[test]',
+          version: version,
+          shutdown: function()
+          {
+            if(_options.test.shutdown)
+              _options.test.shutdown();
 
-          return Promise.resolve();
-        },
-        reboot: function()
-        {
-          if(_options.test.reboot)
-            _options.test.reboot();
+            return Promise.resolve();
+          },
+          reboot: function()
+          {
+            if(_options.test.reboot)
+              _options.test.reboot();
 
-          return Promise.resolve();
-        },
-        update: function()
-        {
-          if(_options.test.update)
-            _options.test.update();
+            return Promise.resolve();
+          },
+          update: function()
+          {
+            if(_options.test.update)
+              _options.test.update();
 
-          return Promise.resolve();
-        },
-        install: function(path)
-        {
-          if(_options.test.install)
-            _options.test.install(path);
+            return Promise.resolve();
+          },
+          install: function(path)
+          {
+            if(_options.test.install)
+              _options.test.install(path);
 
-          return Promise.resolve();
-        },
-        message: function(message)
-        {
-          if(_options.test.message)
-            _options.test.message(message);
-        },
-        on: function(event)
-        {
-          if(!(event in _events))
-            throw {code: 2, description: 'Event does not exist.', url: ''};
+            return Promise.resolve();
+          },
+          message: function(message)
+          {
+            if(_options.test.message)
+              _options.test.message(message);
+          },
+          on: function(event)
+          {
+            if(!(event in _events))
+              throw {code: 2, description: 'Event does not exist.', url: ''};
 
-          console.log('Subscribed to', event, '(will never be fired).');
-        }
-      });
+            console.log('Subscribed to', event, '(will never be fired).');
+          }
+        });
+      };
     }
     else
     {
@@ -74,115 +79,118 @@ module.exports = function potty_app(path, options)
 
       var _events = {message: function(){}};
 
-      process.send({cmd: 'start'});
-
-      if(_options.keepalive)
+      self.start = function()
       {
-        var _keepalive = {alarm: new nappy.alarm(settings.keepalive.margin * settings.keepalive.interval, {sleep_threshold: settings.keepalive.sleep_threshold})};
-        _keepalive.alarm.then(genocide.seppuku);
-      }
+        process.send({cmd: 'start'});
 
-      var _started = false;
-
-      process.on('message', function(message)
-      {
-        if(_options.keepalive && message.cmd === 'keepalive')
+        if(_options.keepalive)
         {
-          try
-          {
-            _keepalive.alarm.reset();
-          } catch(error) {}
-
-          process.send({cmd: 'keepalive'});
+          var _keepalive = {alarm: new nappy.alarm(settings.keepalive.margin * settings.keepalive.interval, {sleep_threshold: settings.keepalive.sleep_threshold})};
+          _keepalive.alarm.then(genocide.seppuku);
         }
-        else if(message.cmd === 'setup' && !_started)
+
+        var _started = false;
+
+        process.on('message', function(message)
         {
-          _started = true;
-
-          var __sentence__ = function()
+          if(_options.keepalive && message.cmd === 'keepalive')
           {
-            if(_options.keepalive)
+            try
             {
-              try
-              {
-                _keepalive.alarm.abort();
-              } catch(error) {}
-            }
+              _keepalive.alarm.reset();
+            } catch(error) {}
 
-            nappy.wait.for(settings.sentence).then(genocide.seppuku);
-          };
+            process.send({cmd: 'keepalive'});
+          }
+          else if(message.cmd === 'setup' && !_started)
+          {
+            _started = true;
 
-          app({
-            id: message.id,
-            version: {main: message.version, potty: version},
-            shutdown: function()
+            var __sentence__ = function()
             {
-              return new Promise(function(resolve)
+              if(_options.keepalive)
               {
-                __sentence__();
-                process.send({cmd: 'shutdown'});
-                process.on('message', function(message)
+                try
                 {
-                  if(message.cmd === 'goodnight')
-                    resolve();
-                });
-              });
-            },
-            reboot: function()
-            {
-              return new Promise(function(resolve)
-              {
-                __sentence__();
-                process.send({cmd: 'reboot'});
-                process.on('message', function(message)
-                {
-                  if(message.cmd === 'goodnight')
-                    resolve();
-                });
-              });
-            },
-            update: function()
-            {
-              return new Promise(function(resolve)
-              {
-                __sentence__();
-                process.send({cmd: 'update'});
-                process.on('message', function(message)
-                {
-                  if(message.cmd === 'goodnight')
-                    resolve();
-                });
-              });
-            },
-            install: function(path)
-            {
-              return new Promise(function(resolve)
-              {
-                __sentence__();
-                process.send({cmd: 'install', meta: {path: path}});
-                process.on('message', function(message)
-                {
-                  if(message.cmd === 'goodnight')
-                    resolve();
-                });
-              });
-            },
-            on: function(event, callback)
-            {
-              if(!(event in _events))
-                throw {code: 2, description: 'Event does not exist.', url: ''};
+                  _keepalive.alarm.abort();
+                } catch(error) {}
+              }
 
-                _events[event] = callback;
-            },
-            message: function(message)
-            {
-              process.send({cmd: 'message', message: message});
-            }
-          });
-        }
-        else if(message.cmd === 'message')
-          _events.message(message.message);
-      });
+              nappy.wait.for(settings.sentence).then(genocide.seppuku);
+            };
+
+            app({
+              id: message.id,
+              version: {main: message.version, potty: version},
+              shutdown: function()
+              {
+                return new Promise(function(resolve)
+                {
+                  __sentence__();
+                  process.send({cmd: 'shutdown'});
+                  process.on('message', function(message)
+                  {
+                    if(message.cmd === 'goodnight')
+                      resolve();
+                  });
+                });
+              },
+              reboot: function()
+              {
+                return new Promise(function(resolve)
+                {
+                  __sentence__();
+                  process.send({cmd: 'reboot'});
+                  process.on('message', function(message)
+                  {
+                    if(message.cmd === 'goodnight')
+                      resolve();
+                  });
+                });
+              },
+              update: function()
+              {
+                return new Promise(function(resolve)
+                {
+                  __sentence__();
+                  process.send({cmd: 'update'});
+                  process.on('message', function(message)
+                  {
+                    if(message.cmd === 'goodnight')
+                      resolve();
+                  });
+                });
+              },
+              install: function(path)
+              {
+                return new Promise(function(resolve)
+                {
+                  __sentence__();
+                  process.send({cmd: 'install', meta: {path: path}});
+                  process.on('message', function(message)
+                  {
+                    if(message.cmd === 'goodnight')
+                      resolve();
+                  });
+                });
+              },
+              on: function(event, callback)
+              {
+                if(!(event in _events))
+                  throw {code: 2, description: 'Event does not exist.', url: ''};
+
+                  _events[event] = callback;
+              },
+              message: function(message)
+              {
+                process.send({cmd: 'message', message: message});
+              }
+            });
+          }
+          else if(message.cmd === 'message')
+            _events.message(message.message);
+        });
+      };
     }
   } catch(error)
   {
