@@ -4,7 +4,7 @@ var needle = require('needle');
 module.exports = function remote(url, params)
 {
   'use strict';
-  
+
   if(!(this instanceof remote))
     throw {code: 0, description: 'Constructor must be called with new.', url: ''};
 

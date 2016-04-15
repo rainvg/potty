@@ -13,7 +13,7 @@ module.exports = function config(config_path, default_path)
 
   // Settings
 
-  var settings = {id: {length: 16}, fetch: {retry: {min: 1000, max: 604800000}}};
+  var settings = {id: {length: 16}, fetch: {retry: {min: 1000, max: 604800000}, update: {min: 1000, max: 604800000}}};
 
   // Constructor
 
@@ -65,5 +65,36 @@ module.exports = function config(config_path, default_path)
   self.fetch.wait = function()
   {
     return nappy.wait.till(_confio.get('fetch_last') + Math.min(Math.pow(2, _confio.get('fetch_retries')) * settings.fetch.retry.min, settings.fetch.retry.max));
+  };
+
+  self.update = {};
+
+  self.update.reset = function()
+  {
+    try
+    {
+      _confio.set('update_vain', 0);
+    } catch(error) {}
+  };
+
+  self.update.increment = function()
+  {
+    try
+    {
+      _confio.set('update_vain', _confio.get('update_vain') + 1);
+    } catch(error) {}
+  };
+
+  self.update.now = function()
+  {
+    try
+    {
+      _confio.set('update_last', new Date().getTime());
+    } catch(error) {}
+  };
+
+  self.update.wait = function()
+  {
+    return (new Date().getTime() < _confio.get('update_last') + Math.min(Math.pow(2, _confio.get('update_vain')) * settings.update.retry.min, settings.update.retry.max));
   };
 };
