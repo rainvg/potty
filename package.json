@@ -1,6 +1,6 @@
 {
   "name": "potty",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "",
   "main": "dist/index.min.js",
   "scripts": {
@@ -25,9 +25,6 @@
     "url": "https://github.com/rainvg/potty/issues"
   },
   "homepage": "https://github.com/rainvg/potty#readme",
-  "engines": {
-    "electron": "0.20.7"
-  },
   "devDependencies": {
     "gulp": "^3.9.0",
     "gulp-jshint": "^2.0.0",
@@ -42,6 +39,7 @@
     "commander": "^2.9.0",
     "confio": "git+https://github.com/rainvg/confio.git",
     "genocide": "git+https://github.com/rainvg/genocide.git",
+    "gulp-replace": "^0.5.4",
     "nappy": "git+https://github.com/rainvg/nappy.git",
     "needle": "^1.0.0",
     "randomstring": "^1.1.4",
