@@ -14,7 +14,7 @@ module.exports = function path(root)
 
   // Settings
 
-  var settings = {intervals: {retry: 5000}};
+  var settings = {intervals: {retry: 60000}};
 
   // Constructor
 
