@@ -12,6 +12,9 @@ module.exports = function install(path, zip, app, config, remote)
   if(!(path instanceof __path__))
     throw {code: 1, description: 'An instance of path is required.', url: ''};
 
+  if(!zip)
+    throw {code: 1, description: 'A zip file is required.', url: ''};
+
   if(!(app instanceof __app__))
     throw {code: 1, description: 'An instance of app is required.', url: ''};
 

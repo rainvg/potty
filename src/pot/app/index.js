@@ -11,16 +11,18 @@ module.exports = function app(path)
 
   var self = this;
 
-  var _version;
+  // Constructor
 
   var _path = path;
+
+  // Getters
 
   self.version = function()
   {
     try
     {
       delete require.cache[require.resolve(ospath.resolve(_path.app(), 'package.json'))];
-      _version = require(ospath.resolve(_path.app(), 'package.json')).version;
+      var _version = require(ospath.resolve(_path.app(), 'package.json')).version;
       return _version;
     } catch(error)
     {

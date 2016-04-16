@@ -22,6 +22,8 @@ module.exports = function path(root)
   var _app = __path__.resolve(_root, 'app');
   var _resources = __path__.resolve(_root, 'resources');
 
+  var _events = {error: []};
+
   // Getters
 
   self.root = function()
@@ -39,7 +41,28 @@ module.exports = function path(root)
     return _resources;
   };
 
+  // Private methods
+
+  var __trigger__ = function(event, value)
+  {
+    if(!(event in _events))
+      throw {code: 2, description: 'Event does not exist.', url: ''};
+
+    _events[event].forEach(function(callback)
+    {
+      callback(value);
+    });
+  };
+
   // Methods
+
+  self.on = function(event, callback)
+  {
+    if(!(event in _events))
+      throw {code: 2, description: 'Event does not exist.', url: ''};
+
+    _events[event].push(callback);
+  };
 
   self.setup = function()
   {
@@ -60,6 +83,7 @@ module.exports = function path(root)
         }
         catch(error)
         {
+          __trigger__('error', error);
           nappy.wait.for(settings.intervals.retry).then(loop);
         }
       })();
@@ -79,6 +103,7 @@ module.exports = function path(root)
             resolve();
           } catch(error)
           {
+            __trigger__('error', error);
             nappy.wait.for(settings.intervals.retry).then(loop);
           }
         })();
