@@ -13,7 +13,7 @@ module.exports = function config(config_path, default_path)
 
   // Settings
 
-  var settings = {id: {length: 16}, fetch: {retry: {min: 1000, max: 604800000}, update: {min: 1000, max: 604800000}}};
+  var settings = {id: {length: 16}, fetch: {retry: {min: 1000, max: 604800000}}, update: {retry:{min: 1000, max: 604800000}}};
 
   // Constructor
 

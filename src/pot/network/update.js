@@ -1,6 +1,6 @@
 var __config__ = require('../config');
-var __remote__ = require('.remote.js');
-var __fetch__ = require('.fetch.js');
+var __remote__ = require('./remote.js');
+var __fetch__ = require('./fetch.js');
 var __app__ = require('../app');
 var __path__ = require('../filesystem/path.js');
 
