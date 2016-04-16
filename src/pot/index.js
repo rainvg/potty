@@ -11,7 +11,7 @@ module.exports = function pot(remote, path, command, options)
   'use strict';
 
   if(!(this instanceof pot))
-    throw {code: 0, description: 'Constructor must be called with new.', url: ''};
+    throw {code: 1, description: 'Constructor must be called with new.', url: ''};
 
   var self = this;
 
@@ -24,6 +24,11 @@ module.exports = function pot(remote, path, command, options)
   var _options = options;
 
   var _app = new __app__(_remote, _path, _command, _config);
+
+  _path.on('error', function(error)
+  {
+    _app.trigger('error', error);
+  });
 
   // Methods
 

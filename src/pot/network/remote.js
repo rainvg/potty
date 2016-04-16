@@ -7,14 +7,14 @@ module.exports = function remote(url, params)
   'use strict';
 
   if(!(this instanceof remote))
-    throw {code: 0, description: 'Constructor must be called with new.', url: ''};
+    throw {code: 1, description: 'Constructor must be called with new.', url: ''};
 
   var self = this;
 
   // Constructor
 
   if(!url)
-    throw {code: 1, description: 'URL must be provided.', url: ''};
+    throw {code: 2, description: 'URL must be provided.', url: ''};
 
   var _url = url;
   var _params = params || {};

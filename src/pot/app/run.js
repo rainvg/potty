@@ -4,6 +4,8 @@ var __logger__ = require('../../logger');
 
 module.exports = function run(app, command, config, options)
 {
+  'use strict';
+  
   var _options = options || {};
   _options.parent = _options.parent || {};
   _options.parent.version = _options.parent.version || '0.0.0';

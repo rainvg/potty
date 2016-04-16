@@ -1,6 +1,5 @@
 var ospath = require('path');
 var __update__ = require('../network/update.js');
-var __path__ = require('../filesystem/path.js');
 var __run__ = require('./run.js');
 var __logger__ = require('../../logger');
 
@@ -9,13 +8,10 @@ module.exports = function app(remote, path, command, config)
   'use strict';
 
   if(!(this instanceof app))
-    throw {code: 0, description: 'Constructor must be called with new.', url: ''};
-
-  if(!(path instanceof __path__))
-    throw {code: 1, description: 'An instance of path is required.', url: ''};
+    throw {code: 1, description: 'Constructor must be called with new.', url: ''};
 
   if(!command)
-    throw {code: 1, description: 'A command is required.', url: ''};
+    throw {code: 2, description: 'A command is required.', url: ''};
 
   var self = this;
 

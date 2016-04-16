@@ -7,10 +7,7 @@ var version = require(path.resolve(__dirname, '..', '..', 'package.json')).versi
 module.exports = function app(path)
 {
   'use strict';
-
-  if(!(this instanceof app))
-    throw {code: 0, description: 'Constructor must be called with new.', url: ''};
-
+  
   var self = this;
 
   // Settings

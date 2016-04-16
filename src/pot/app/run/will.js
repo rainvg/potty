@@ -8,7 +8,7 @@ module.exports = function will(app, child)
   'use strict';
 
   if(!(this instanceof will))
-    throw {code: 0, description: 'Constructor must be called with new.', url: ''};
+    throw {code: 1, description: 'Constructor must be called with new.', url: ''};
 
   var self = this;
 
@@ -53,7 +53,7 @@ module.exports = function will(app, child)
 
     __logger__.log('Setting will to', will);
 
-    if(args)
+    if(args && args.length)
       __logger__.log('Will arguments:', args);
 
     _will = {cmd: will, args: args || [], executed: false};

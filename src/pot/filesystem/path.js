@@ -9,7 +9,7 @@ module.exports = function path(root)
   'use strict';
 
   if(!(this instanceof path))
-    throw {code: 0, description: 'Constructor must be called with new.', url: ''};
+    throw {code: 1, description: 'Constructor must be called with new.', url: ''};
 
   var self = this;
 

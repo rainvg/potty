@@ -8,7 +8,7 @@ module.exports = function config(config_path)
   'use strict';
 
   if(!(this instanceof config))
-    throw {code: 0, description: 'Constructor must be called with new.', url: ''};
+    throw {code: 1, description: 'Constructor must be called with new.', url: ''};
 
   var self = this;
 

@@ -4,22 +4,12 @@ var ospath = require('path');
 var randomstring = require('randomstring');
 var os = require('os');
 
-var __config__ = require('../config');
-var __remote__ = require('./remote.js');
-var __path__ = require('../filesystem/path.js');
 var __unzip__ = require('../filesystem/unzip.js');
 var __logger__ = require('../../logger');
 
 module.exports = function fetch(config, path, remote)
 {
-  if(!(config instanceof __config__))
-    throw {code: 1, description: 'An instance of config is required.', url: ''};
-
-  if(!(path instanceof __path__))
-    throw {code: 1, description: 'An instance of path is required.', url: ''};
-
-  if(!(remote instanceof __remote__))
-    throw {code: 1, description: 'An instance of remote is required.', url: ''};
+  'use strict';
 
   // Settings
 
@@ -33,12 +23,12 @@ module.exports = function fetch(config, path, remote)
       {
         __logger__.log('Attempting download.');
 
-        remote.load().then(function(package)
+        remote.load().then(function(remote_package)
         {
           var tmp = {path: ospath.resolve(os.tmpdir(), randomstring.generate(settings.filename.length))};
 
-          __logger__.log('Downloading', package.latest.url, 'to', tmp.path);
-          needle.get(package.latest.url, {output: tmp.path}, function(error, response)
+          __logger__.log('Downloading', remote_package.latest.url, 'to', tmp.path);
+          needle.get(remote_package.latest.url, {output: tmp.path}, function(error, response)
           {
             if(error || response.statusCode !== 200)
             {
