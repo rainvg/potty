@@ -1,9 +1,9 @@
 var __spawn__ = require('./run/spawn.js');
-var __will__ = require('./run/message.js');
+var __will__ = require('./run/will.js');
 
-module.exports = function run(app)
+module.exports = function run(app, command)
 {
-  var child = __spawn__(app);
+  var child = __spawn__(command);
   var will = new __will__(app, child);
 
   will.once(null, function(args, reason)
@@ -15,7 +15,7 @@ module.exports = function run(app)
         app.trigger('update');
 
       app.trigger('reboot');
-      run(app);
+      app.run();
     });
   });
 
@@ -27,7 +27,7 @@ module.exports = function run(app)
   will.once('reboot', function()
   {
     app.trigger('reboot');
-    run(app);
+    app.run();
   });
 
   will.once('update', function()
@@ -38,7 +38,7 @@ module.exports = function run(app)
         app.trigger('update');
 
       app.trigger('reboot');
-      run(app);
+      app.run();
     });
   });
 
@@ -50,7 +50,7 @@ module.exports = function run(app)
         app.trigger('update');
 
       app.trigger('reboot');
-      run(app);
+      app.run();
     });
   });
 

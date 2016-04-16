@@ -1,6 +1,7 @@
 var ospath = require('path');
 var __update__ = require('../network/update.js');
 var __path__ = require('../filesystem/path.js');
+var __run__ = require('./run.js');
 
 module.exports = function app(remote, path, command, config)
 {
@@ -47,12 +48,12 @@ module.exports = function app(remote, path, command, config)
     }
   };
 
-  self.command = function()
-  {
-    return _command;
-  };
-
   // Methods
+
+  self.run = function()
+  {
+    __run__(self, _command);
+  };
 
   self.update = function(force)
   {
@@ -61,12 +62,22 @@ module.exports = function app(remote, path, command, config)
 
   // Events and handles
 
-  self.handle = function(handle, callback)
+  self.handle = {};
+
+  self.handle.set = function(handle, callback)
   {
     if(!(handle in _handles))
       throw {code: 2, description: 'Handle not found.', url: ''};
 
     _handles[handle] = callback;
+  };
+
+  self.handle.call = function(handle, value)
+  {
+    if(!(handle in _handles))
+      throw {code: 2, description: 'Handle not found.', url: ''};
+
+    _handles[handle](value);
   };
 
   self.on = function(event, callback)

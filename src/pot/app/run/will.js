@@ -17,9 +17,7 @@ module.exports = function will(app, child)
   // Constructor
 
   var _child = child;
-
   var _will = {cmd: null, args: [], executed: false};
-
   var _callbacks = {null: function(){}, shutdown: function(){}, reboot: function(){}, update: function(){}, install: function(){}};
 
   // Private methods
@@ -70,11 +68,11 @@ module.exports = function will(app, child)
 
     genocide.genocide(_child.pid);
 
-    app.handle('bury', function(){});
-    app.handle('message', function(){});
+    app.handle.set('bury', function(){});
+    app.handle.set('message', function(){});
 
     _callbacks[_will.cmd](_will.args, reason);
   };
 
-  app.handle('bury', self.bury);
+  app.handle.set('bury', self.bury);
 };

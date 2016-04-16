@@ -4,21 +4,21 @@ var child_process = require('child_process');
 
 var settings = {log: {size: {max: 1048576}}};
 
-var __spawn__ = function(app)
+var __spawn__ = function(command)
 {
   'use strict';
 
   var _env = process.env;
 
-  for(var key in app.command().env)
+  for(var key in command.env)
   {
-    if(typeof app.command().env[key] === 'undefined')
+    if(typeof command.env[key] === 'undefined')
       delete process.env[key];
     else
-      process.env[key] = app.command().env[key];
+      process.env[key] = command.env[key];
   }
 
-  var child = child_process.spawn(app.command().command, app.command().args, {cwd: app.command().cwd, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+  var child = child_process.spawn(command.command, command.args, {cwd: command.cwd, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
   process.env = _env;
 
@@ -89,9 +89,9 @@ var __setup_log__ = function(child)
   return child;
 };
 
-module.exports = function(app)
+module.exports = function(command)
 {
   'use strict';
 
-  return __setup_log__(__spawn__(app));
+  return __setup_log__(__spawn__(command));
 };
