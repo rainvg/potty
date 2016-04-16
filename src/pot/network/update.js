@@ -28,7 +28,7 @@ module.exports = function update(app, path, config, remote, force)
 
     config.update.now();
 
-    remote.load().then(function(remote_package)
+    remote.load(true).then(function(remote_package)
     {
       if(remote_package.version === app.version())
       {
