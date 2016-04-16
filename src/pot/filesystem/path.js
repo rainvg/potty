@@ -2,6 +2,7 @@ var nappy = require('nappy');
 var fs = require('fs-extra');
 var child_process = require('child_process');
 var __path__ = require('path');
+var __logger__ = require('../../logger');
 
 module.exports = function path(root)
 {
@@ -56,6 +57,8 @@ module.exports = function path(root)
 
   // Methods
 
+  // TODO: CATCH ME BITCH
+
   self.on = function(event, callback)
   {
     if(!(event in _events))
@@ -70,6 +73,8 @@ module.exports = function path(root)
     {
       (function loop()
       {
+        __logger__.log('Setting up path ', _root);
+
         try
         {
           fs.mkdirsSync(_root);
@@ -79,10 +84,12 @@ module.exports = function path(root)
           if(process.platform === 'win32')
             child_process.execSync('attrib +h ' + _root);
 
+          __logger__.log('Path set up.');
           resolve();
         }
         catch(error)
         {
+          __logger__.err('Failed setting up path.');
           __trigger__('error', error);
           nappy.wait.for(settings.intervals.retry).then(loop);
         }
@@ -99,10 +106,13 @@ module.exports = function path(root)
         {
           try
           {
+            __logger__.log('Clearing', _app, 'folder.');
+
             fs.remove(_app);
             resolve();
           } catch(error)
           {
+            __logger__.err('Failed clearing folder.');
             __trigger__('error', error);
             nappy.wait.for(settings.intervals.retry).then(loop);
           }

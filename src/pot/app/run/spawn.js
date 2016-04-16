@@ -1,5 +1,7 @@
 var child_process = require('child_process');
 
+var __logger__ = require('../../../logger');
+
 // Settings
 
 var settings = {log: {size: {max: 1048576}}};
@@ -18,6 +20,7 @@ var __spawn__ = function(command)
       process.env[key] = command.env[key];
   }
 
+  __logger__.log('Spawning child process.');
   var child = child_process.spawn(command.command, command.args, {cwd: command.cwd, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
   process.env = _env;
@@ -29,6 +32,7 @@ var __setup_log__ = function(child)
 {
   'use strict';
 
+  __logger__.log('Binding events to child process.');
   var _log = {stdout: '', stderr: '', events: {stdout: [], stderr: []}};
 
   var __trigger__ = function(event, value)

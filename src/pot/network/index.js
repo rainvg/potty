@@ -1,11 +1,11 @@
-var online = require('./online.js');
-var remote = require('./remote.js');
-var fetch = require('./fetch.js');
-var update = require('./update.js');
+var __online__ = require('./online.js');
+var __remote__ = require('./remote.js');
+var __fetch__ = require('./fetch.js');
+var __update__ = require('./update.js');
 
 module.exports = {
-  online: online,
-  remote: remote,
-  fetch: fetch,
-  update: update
+  online: __online__,
+  remote: __remote__,
+  fetch: __fetch__,
+  update: __update__
 };

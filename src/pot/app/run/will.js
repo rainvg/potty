@@ -1,6 +1,8 @@
 var nappy = require('nappy');
 var genocide = require('genocide');
 
+var __logger__ = require('../../../logger');
+
 module.exports = function will(app, child)
 {
   'use strict';
@@ -24,10 +26,12 @@ module.exports = function will(app, child)
 
   var __sentence__ = function()
   {
+    __logger__.log('Sentencing child process.');
     nappy.wait.for(settings.sentence).then(function()
     {
       if(!(_will.executed))
       {
+        __logger__.err('Executing sentence.');
         _will.cmd = null;
         genocide.genocide(_child.pid);
       }
@@ -47,6 +51,11 @@ module.exports = function will(app, child)
     if(!(_will.cmd))
       __sentence__();
 
+    __logger__.log('Setting will to', will);
+
+    if(args)
+      __logger__.log('Will arguments:', args);
+
     _will = {cmd: will, args: args || [], executed: false};
   };
 
@@ -63,6 +72,8 @@ module.exports = function will(app, child)
   self.bury = function(reason)
   {
     if(_will.executed) return;
+
+    __logger__.log('Burying child process.');
 
     _will.executed = true;
 

@@ -2,7 +2,7 @@ var nappy = require('nappy');
 var path = require('path');
 var genocide = require('genocide');
 
-var version = require(path.resolve(__dirname, '..', 'package.json')).version;
+var version = require(path.resolve(__dirname, '..', '..', 'package.json')).version;
 
 module.exports = function potty_app(path, options)
 {

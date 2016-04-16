@@ -1,5 +1,6 @@
 var nappy = require('nappy');
 var needle = require('needle');
+var __logger__ = require('../../logger');
 
 module.exports = function remote(url, params)
 {
@@ -26,6 +27,8 @@ module.exports = function remote(url, params)
   {
     if(!_package || force)
     {
+      __logger__.log('Loading remote package.');
+
       var __load_try__ = function()
       {
         return new Promise(function(resolve, reject)
@@ -36,6 +39,7 @@ module.exports = function remote(url, params)
             {
               if(error || response.statusCode !== 200)
               {
+                __logger__.err('Failed loading remote package:', error || response.statusCode);
                 reject();
                 return;
               }
@@ -43,9 +47,11 @@ module.exports = function remote(url, params)
               try
               {
                 _package = JSON.parse(response.body);
+                __logger__.log('Remote package loaded successfully.');
                 resolve(_package);
               } catch(error)
               {
+                __logger__.err('Failed parsing JSON:', error);
                 reject();
               }
             });

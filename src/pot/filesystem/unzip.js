@@ -1,6 +1,7 @@
 var fs = require('fs-extra');
 var __path__ = require('./path.js');
 var __unzip__ = require('unzip');
+var __logger__ = require('../../logger');
 
 module.exports = function unzip(path, zip)
 {
@@ -14,7 +15,16 @@ module.exports = function unzip(path, zip)
   {
     path.clear.app().then(function()
     {
-      fs.createReadStream(zip).pipe(__unzip__.Extract({path: path.app()})).on('finish', resolve).on('error', reject);
+      __logger__.log('Unzipping', zip, 'to', path.app());
+      fs.createReadStream(zip).pipe(__unzip__.Extract({path: path.app()})).on('finish', function()
+      {
+        __logger__.log('Unzip successful.');
+        resolve();
+      }).on('error', function(error)
+      {
+        __logger__.log('Error unzipping:', error);
+        reject(error);
+      });
     });
   });
 };

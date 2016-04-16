@@ -1,8 +1,9 @@
 var confio = require('confio');
 var randomstring = require('randomstring');
 var nappy = require('nappy');
+var ospath = require('path');
 
-module.exports = function config(config_path, default_path)
+module.exports = function config(config_path)
 {
   'use strict';
 
@@ -17,7 +18,7 @@ module.exports = function config(config_path, default_path)
 
   // Constructor
 
-  var _confio = new confio.confio(config_path, default_path);
+  var _confio = new confio.confio(config_path, ospath.resolve(__dirname, '..', '..', '..', 'config', 'pot.json'));
 
   // Getters
 
