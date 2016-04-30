@@ -10,9 +10,8 @@ var load = require('../../vendor.js').load;
 
 module.exports = function()
 {
+  load.test('fetch', path.resolve(__dirname, 'fetch.js'));
+  load.test('online', path.resolve(__dirname, 'online.js'));
   load.test('remote', path.resolve(__dirname, 'remote.js'));
-  load.test('status', path.resolve(__dirname,'online.js'));
-
-  it('should fetch remote package');
-  it('should check for update');
+  load.test('update', path.resolve(__dirname, 'update.js'));
 };

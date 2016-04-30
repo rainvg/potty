@@ -8,10 +8,11 @@ var should = vendor.should; // jshint ignore: line
 
 // Mocks
 
+// Files to be tested
+
 // Tests
 
 module.exports = function()
 {
-  it('should unzip correctly');
-  it('should install package');
+  it('should check for update');
 };
