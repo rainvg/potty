@@ -108,7 +108,7 @@ module.exports = function path(root)
           {
             __logger__.log('Clearing', _app, 'folder.');
 
-            fs.remove(_app);
+            fs.removeSync(_app);
             resolve();
           } catch(error)
           {

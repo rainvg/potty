@@ -23,8 +23,9 @@ gulp.task('minify', ['lint', 'test'], function()
 
 gulp.task('test', ['lint'], function()
 {
-  return gulp.src('test/index.js', {read: false}).pipe(mocha()).once('error', function()
+  return gulp.src('test/index.js', {read: false}).pipe(mocha()).once('error', function(error)
   {
+    console.log(error);
     process.exit(1);
   });
 });
