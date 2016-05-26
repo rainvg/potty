@@ -46,7 +46,6 @@
     "nappy": "git+https://github.com/rainvg/nappy.git",
     "needle": "^1.0.0",
     "randomstring": "^1.1.4",
-    "request": "^2.69.0",
     "unzip": "^0.1.11"
   }
 }
