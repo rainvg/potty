@@ -21,7 +21,7 @@ module.exports = function()
 {
   it('should be online', function(done)
   {
-    sinon.stub(needle, 'get', function(url, callback)
+    sinon.stub(needle, 'get', function(url, options, callback)
     {
       var ip = '2.224.212.173';
       callback(undefined, {statusCode: 200, body: ip});
@@ -33,7 +33,7 @@ module.exports = function()
 
   it('should be offline', function(done)
   {
-    sinon.stub(needle, 'get', function(url, callback)
+    sinon.stub(needle, 'get', function(url, option, callback)
     {
       callback(undefined, {statusCode: 404, body: undefined});
     });

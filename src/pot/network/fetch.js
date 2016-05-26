@@ -13,7 +13,20 @@ module.exports = function fetch(config, path, remote)
 
   // Settings
 
-  var settings = {filename: {length: 16}};
+  var settings = {filename: {length: 16}, needle: {open_timeout: 10000, read_timeout: 60000}};
+
+  var __merge_settings__ = function(a, b)
+  {
+    var c = {};
+
+    for(var attr in a)
+      c[attr] = a[attr];
+
+    for(var attr in b)
+      c[attr] = b[attr];
+
+    return c;
+  };
 
   var __download_try__ = function()
   {
@@ -28,7 +41,7 @@ module.exports = function fetch(config, path, remote)
           var tmp = {path: ospath.resolve(os.tmpdir(), randomstring.generate(settings.filename.length))};
 
           __logger__.log('Downloading', remote_package.latest.url, 'to', tmp.path);
-          needle.get(remote_package.latest.url, {output: tmp.path}, function(error, response)
+          needle.get(remote_package.latest.url, __merge_settings__(settings.needle, {output: tmp.path}), function(error, response)
           {
             if(error || response.statusCode !== 200)
             {

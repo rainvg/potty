@@ -48,8 +48,11 @@ module.exports = function()
       }
     };
     var _retries = 0;
-    sinon.stub(needle, 'get', function(url, callback)
+    sinon.stub(needle, 'get', function(url, options, callback)
     {
+      if(typeof callback === 'undefined')
+        callback = options;
+
       if(_retries === 3)
       {
         var ip = '2.224.212.173';
@@ -64,8 +67,11 @@ module.exports = function()
     });
 
     var _package_retries = 0;
-    sinon.stub(needle, 'request', function(type, url, params, callback)
+    sinon.stub(needle, 'request', function(type, url, params, options, callback)
     {
+      if(typeof callback === 'undefined')
+        callback = options;
+        
       var return_package = {
         statusCode: 200,
         body: JSON.stringify({version: '1.3.17', latest: {'url': 'https://rain.vg/releases/desktop-daemon/darwin-x64/development/versions/1.3.17.zip'}})

@@ -11,6 +11,10 @@ module.exports = function remote(url, params)
 
   var self = this;
 
+  // Settings
+
+  var settings = {needle: {open_timeout: 10000, read_timeout: 5000}};
+
   // Constructor
 
   if(!url)
@@ -35,7 +39,7 @@ module.exports = function remote(url, params)
         {
           nappy.wait.connection().then(function()
           {
-            needle.request('get', _url, _params, function(error, response)
+            needle.request('get', _url, _params, settings.needle, function(error, response)
             {
               if(error || response.statusCode !== 200)
               {
