@@ -25,7 +25,7 @@ module.exports = function unzip(path, zip)
           return;
         }
 
-        archive.extractAllToAsync(path, true, function(error)
+        archive.extractAllToAsync(path.app(), true, function(error)
         {
           if(typeof error !== 'undefined')
             reject();
