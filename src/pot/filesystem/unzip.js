@@ -1,11 +1,11 @@
 var fs = require('fs-extra');
-var __unzip__ = require('unzip');
+var __zip__ = require('adm-zip');
 var __logger__ = require('../../logger');
 
 module.exports = function unzip(path, zip)
 {
   'use strict';
-  
+
   if(!zip)
     throw {code: 2, description: 'A zip file is required.', url: ''};
 
@@ -14,15 +14,29 @@ module.exports = function unzip(path, zip)
     path.clear.app().then(function()
     {
       __logger__.log('Unzipping', zip, 'to', path.app());
-      fs.createReadStream(zip).pipe(__unzip__.Extract({path: path.app()})).on('finish', function()
+
+      try
       {
-        __logger__.log('Unzip successful.');
-        resolve();
-      }).on('error', function(error)
+        var archive = new __zip__(zip);
+
+        if(typeof archive === 'undefined')
+        {
+          reject();
+          return;
+        }
+
+        archive.extractAllToAsync(path, true, function(error)
+        {
+          if(typeof error !== 'undefined')
+            reject();
+          else
+            resolve();
+        });
+      }
+      catch(error)
       {
-        __logger__.log('Error unzipping:', error);
-        reject(error);
-      });
+        reject();
+      }
     });
   });
 };
