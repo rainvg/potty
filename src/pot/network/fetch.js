@@ -3,6 +3,7 @@ var needle = require('needle');
 var ospath = require('path');
 var randomstring = require('randomstring');
 var os = require('os');
+var fs = require('fs-extra');
 
 var __unzip__ = require('../filesystem/unzip.js');
 var __logger__ = require('../../logger');
@@ -15,19 +16,6 @@ module.exports = function fetch(config, path, remote)
 
   var settings = {filename: {length: 16}, needle: {open_timeout: 10000, read_timeout: 60000}};
 
-  var __merge_settings__ = function(a, b)
-  {
-    var c = {};
-
-    for(var attr in a)
-      c[attr] = a[attr];
-
-    for(var attr in b)
-      c[attr] = b[attr];
-
-    return c;
-  };
-
   var __download_try__ = function()
   {
     return new Promise(function(resolve, reject)
@@ -38,10 +26,10 @@ module.exports = function fetch(config, path, remote)
 
         remote.load().then(function(remote_package)
         {
-          var tmp = {path: ospath.resolve(os.tmpdir(), randomstring.generate(settings.filename.length))};
+          var tmp = {path: ospath.resolve(path.root(), 'release.zip')};
 
           __logger__.log('Downloading', remote_package.latest.url, 'to', tmp.path);
-          needle.get(remote_package.latest.url, __merge_settings__(settings.needle, {output: tmp.path}), function(error, response)
+          needle.get(remote_package.latest.url, settings.needle, function(error, response)
           {
             if(error || response.statusCode !== 200)
             {
@@ -49,8 +37,16 @@ module.exports = function fetch(config, path, remote)
               reject(error);
             }
 
-            __logger__.log('Download succeeded');
-            resolve(tmp.path);
+            fs.writeFile(tmp.path, response.body, function(error)
+            {
+              if(error)
+                reject(error);
+              else
+              {
+                __logger__.log('Download succeeded');
+                resolve(tmp.path);
+              }
+            });
           });
         });
       });
