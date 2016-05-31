@@ -5,7 +5,7 @@ var __logger__ = require('../../logger');
 module.exports = function run(app, command, config, options)
 {
   'use strict';
-  
+
   var _options = options || {};
   _options.parent = _options.parent || {};
   _options.parent.version = _options.parent.version || '0.0.0';
@@ -35,7 +35,7 @@ module.exports = function run(app, command, config, options)
         app.trigger('update');
 
       app.trigger('reboot');
-      app.run();
+      app.run(_options);
     });
   });
 
@@ -47,7 +47,7 @@ module.exports = function run(app, command, config, options)
   will.once('reboot', function()
   {
     app.trigger('reboot');
-    app.run();
+    app.run(_options);
   });
 
   will.once('update', function()
@@ -58,7 +58,7 @@ module.exports = function run(app, command, config, options)
         app.trigger('update');
 
       app.trigger('reboot');
-      app.run();
+      app.run(_options);
     });
   });
 
@@ -70,7 +70,7 @@ module.exports = function run(app, command, config, options)
         app.trigger('update');
 
       app.trigger('reboot');
-      app.run();
+      app.run(_options);
     });
   });
 
